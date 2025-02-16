@@ -1,3 +1,4 @@
+import { Button } from '@mui/material'
 import { useState } from 'react'
 
 const ROWS = 6
@@ -104,9 +105,9 @@ function App() {
         }}
       >
         {Array.from({ length: COLS }).map((_, col) => (
-          <button key={col} onClick={() => handleClick(col)}>
+          <Button key={col} variant='contained' onClick={() => handleClick(col)}>
             Drop
-          </button>
+          </Button>
         ))}
         {board.map((row, rowIndex) =>
           row.map((cell, colIndex) => (
