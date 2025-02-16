@@ -14,6 +14,7 @@ const StyledContainer = styled(Container)({
   justifyContent: 'center',
   minHeight: '100vh',
   backgroundColor: '#f0f0f0',
+  padding: '20px',
 })
 
 const BoardContainer = styled('div')({
