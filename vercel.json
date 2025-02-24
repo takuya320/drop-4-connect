@@ -6,5 +6,6 @@
       "dest": "/index.html"
     }
   ],
-  "outputDirectory": "dist"
+  "outputDirectory": "dist",
+  "rewrites": [{ "source": "/(.*)", "destination": "/" }]
 }
