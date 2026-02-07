@@ -448,6 +448,7 @@ function App() {
     if (winner) return false
     return board[0].every((cell) => cell !== null)
   }, [board, winner])
+  const isGameOver = Boolean(winner) || isDraw
 
   const resetGame = useCallback(() => {
     const initialBoard: Player[][] = []
@@ -551,7 +552,7 @@ function App() {
       <Page>
         <StyledContainer maxWidth="md">
           <Header>
-            <Title variant="h3" gutterBottom>
+            <Title variant="h3" gutterBottom style={{ animation: isGameOver ? 'none' : undefined }}>
               玉落とし四目並べ
             </Title>
             <Subtitle variant="body1">
@@ -582,7 +583,7 @@ function App() {
                   ...dotStyles[winner],
                   width: '22px',
                   height: '22px',
-                  animation: `${floatUp} 2s ease-in-out infinite`,
+                  animation: isGameOver ? 'none' : `${floatUp} 2s ease-in-out infinite`,
                 }}
               />
               <WinText>
