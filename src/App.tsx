@@ -442,6 +442,7 @@ function App() {
   const [currentPlayer, setCurrentPlayer] = useState<Player>('red')
   const [winner, setWinner] = useState<Player>(null)
   const columns = useMemo(() => Array.from({ length: COLS }, (_, i) => i), [])
+  const hoverPlayer = currentPlayer ?? 'red'
 
   const isDraw = useMemo(() => {
     if (winner) return false
@@ -608,8 +609,8 @@ function App() {
               <BoardContainer
                 style={
                   {
-                    '--hover-bg': hoverDiscStyles[currentPlayer].background,
-                    '--hover-shadow': hoverDiscStyles[currentPlayer].boxShadow,
+                    '--hover-bg': hoverDiscStyles[hoverPlayer].background,
+                    '--hover-shadow': hoverDiscStyles[hoverPlayer].boxShadow,
                   } as CSSProperties
                 }
               >
