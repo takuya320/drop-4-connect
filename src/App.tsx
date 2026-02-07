@@ -1,6 +1,7 @@
 import { Button, Container, GlobalStyles, Typography } from '@mui/material'
 import { styled, keyframes } from '@mui/system'
 import { useMemo, useState, useCallback, memo } from 'react'
+import type { CSSProperties } from 'react'
 
 const ROWS = 6
 const COLS = 7
@@ -225,6 +226,12 @@ const ColumnButton = styled(Button)({
     boxShadow: '0 8px 20px rgba(0,0,0,0.3)',
     border: '1px solid rgba(255,255,255,0.12)',
   },
+  '&:hover .drop-indicator': {
+    background: 'var(--hover-bg)',
+    boxShadow: 'var(--hover-shadow)',
+    opacity: 1,
+    transform: 'scale(1.1)',
+  },
   '&.Mui-disabled': {
     opacity: 0.25,
     background: 'transparent',
@@ -237,6 +244,9 @@ const DropIndicator = styled('div')({
   height: '28px',
   borderRadius: '50%',
   transition: 'all 200ms cubic-bezier(0.4, 0, 0.2, 1)',
+  background: 'rgba(255,255,255,0.06)',
+  boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)',
+  opacity: 0.5,
 })
 
 const Cell = styled('div')({
@@ -420,12 +430,6 @@ const hoverDiscStyles = {
   },
 }
 
-const defaultIndicator = {
-  background: 'rgba(255,255,255,0.06)',
-  boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)',
-  opacity: 0.5,
-}
-
 /* ─── app ─── */
 function App() {
   const [board, setBoard] = useState<Player[][]>(() => {
@@ -437,7 +441,7 @@ function App() {
   })
   const [currentPlayer, setCurrentPlayer] = useState<Player>('red')
   const [winner, setWinner] = useState<Player>(null)
-  const [hoverCol, setHoverCol] = useState<number | null>(null)
+  const columns = useMemo(() => Array.from({ length: COLS }, (_, i) => i), [])
 
   const isDraw = useMemo(() => {
     if (winner) return false
@@ -601,32 +605,22 @@ function App() {
             </FloatingKanji>
 
             <BoardShell>
-              <BoardContainer>
-                {Array.from({ length: COLS }).map((_, col) => (
-                  <ColumnButton
-                    key={`drop-${col}`}
-                    variant="contained"
-                    onClick={() => handleClick(col)}
-                    onMouseEnter={() => setHoverCol(col)}
-                    onMouseLeave={() => setHoverCol(null)}
-                    disabled={isColumnFull[col] || Boolean(winner) || isDraw}
-                    disableElevation
-                    disableRipple
-                    aria-label={`列${col + 1}に玉を落とす`}
-                  >
-                    <DropIndicator
-                      style={
-                        hoverCol === col && currentPlayer
-                          ? {
-                              ...hoverDiscStyles[currentPlayer],
-                              opacity: 1,
-                              transform: 'scale(1.1)',
-                            }
-                          : defaultIndicator
-                      }
-                    />
-                  </ColumnButton>
-                ))}
+              <BoardContainer
+                style={
+                  {
+                    '--hover-bg': hoverDiscStyles[currentPlayer].background,
+                    '--hover-shadow': hoverDiscStyles[currentPlayer].boxShadow,
+                  } as CSSProperties
+                }
+              >
+                <ColumnButtons
+                  columns={columns}
+                  currentPlayer={currentPlayer}
+                  isColumnFull={isColumnFull}
+                  isDraw={isDraw}
+                  winner={winner}
+                  onDrop={handleClick}
+                />
                 <BoardGrid board={board} />
               </BoardContainer>
             </BoardShell>
@@ -663,6 +657,40 @@ const BoardGrid = memo(function BoardGrid({ board }: { board: Player[][] }) {
           </Cell>
         ))
       )}
+    </>
+  )
+})
+
+const ColumnButtons = memo(function ColumnButtons({
+  columns,
+  currentPlayer,
+  isColumnFull,
+  isDraw,
+  winner,
+  onDrop,
+}: {
+  columns: number[]
+  currentPlayer: Player
+  isColumnFull: boolean[]
+  isDraw: boolean
+  winner: Player
+  onDrop: (col: number) => void
+}) {
+  return (
+    <>
+      {columns.map((col) => (
+        <ColumnButton
+          key={`drop-${col}`}
+          variant="contained"
+          onClick={() => onDrop(col)}
+          disabled={isColumnFull[col] || Boolean(winner) || isDraw}
+          disableElevation
+          disableRipple
+          aria-label={`列${col + 1}に玉を落とす`}
+        >
+          <DropIndicator className="drop-indicator" />
+        </ColumnButton>
+      ))}
     </>
   )
 })
