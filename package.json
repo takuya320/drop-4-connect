@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Drop 4 Connect",
   "main": "index.js",
+  "packageManager": "pnpm@10.19.0",
   "scripts": {
     "build": "webpack",
     "check": "pnpm run lint && pnpm run typecheck",
