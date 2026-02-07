@@ -617,7 +617,6 @@ function App() {
               >
                 <ColumnButtons
                   columns={columns}
-                  currentPlayer={currentPlayer}
                   isColumnFull={isColumnFull}
                   isDraw={isDraw}
                   winner={winner}
@@ -665,14 +664,12 @@ const BoardGrid = memo(function BoardGrid({ board }: { board: Player[][] }) {
 
 const ColumnButtons = memo(function ColumnButtons({
   columns,
-  currentPlayer,
   isColumnFull,
   isDraw,
   winner,
   onDrop,
 }: {
   columns: number[]
-  currentPlayer: Player
   isColumnFull: boolean[]
   isDraw: boolean
   winner: Player
