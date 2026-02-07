@@ -1,6 +1,6 @@
 import { Button, Container, GlobalStyles, Typography } from '@mui/material'
 import { styled, keyframes } from '@mui/system'
-import { useMemo, useState, useCallback } from 'react'
+import { useMemo, useState, useCallback, memo } from 'react'
 
 const ROWS = 6
 const COLS = 7
@@ -539,8 +539,6 @@ function App() {
     <>
       <GlobalStyles
         styles={{
-          '@import':
-            "url('https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@400;600;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap')",
           '*': { boxSizing: 'border-box', margin: 0, padding: 0 },
           body: { margin: 0, background: '#0a0e1a' },
         }}
@@ -629,13 +627,7 @@ function App() {
                     />
                   </ColumnButton>
                 ))}
-                {board.map((row, rowIndex) =>
-                  row.map((cell, colIndex) => (
-                    <Cell key={`${rowIndex}-${colIndex}`}>
-                      {cell && <Disc style={discStyles[cell]} />}
-                    </Cell>
-                  ))
-                )}
+                <BoardGrid board={board} />
               </BoardContainer>
             </BoardShell>
 
@@ -660,3 +652,17 @@ function App() {
 }
 
 export default App
+
+const BoardGrid = memo(function BoardGrid({ board }: { board: Player[][] }) {
+  return (
+    <>
+      {board.map((row, rowIndex) =>
+        row.map((cell, colIndex) => (
+          <Cell key={`${rowIndex}-${colIndex}`}>
+            {cell && <Disc style={discStyles[cell]} />}
+          </Cell>
+        ))
+      )}
+    </>
+  )
+})
