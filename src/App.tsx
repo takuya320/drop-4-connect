@@ -2,11 +2,16 @@ import { Button, Container, GlobalStyles, Typography } from '@mui/material'
 import { styled, keyframes } from '@mui/system'
 import { useMemo, useState, useCallback, memo } from 'react'
 import type { CSSProperties } from 'react'
-
-const ROWS = 6
-const COLS = 7
-
-type Player = 'red' | 'yellow' | null
+import {
+  type Player,
+  ROWS,
+  COLS,
+  createEmptyBoard,
+  checkWinner,
+  dropDisc,
+  isDraw as checkDraw,
+  countMoves,
+} from './gameLogic'
 
 /* ─── keyframes ─── */
 const dropIn = keyframes`
@@ -432,114 +437,43 @@ const hoverDiscStyles = {
 
 /* ─── app ─── */
 function App() {
-  const [board, setBoard] = useState<Player[][]>(() => {
-    const initialBoard: Player[][] = []
-    for (let i = 0; i < ROWS; i++) {
-      initialBoard.push(Array(COLS).fill(null))
-    }
-    return initialBoard
-  })
+  const [board, setBoard] = useState<Player[][]>(createEmptyBoard)
   const [currentPlayer, setCurrentPlayer] = useState<Player>('red')
   const [winner, setWinner] = useState<Player>(null)
   const columns = useMemo(() => Array.from({ length: COLS }, (_, i) => i), [])
   const hoverPlayer = currentPlayer ?? 'red'
 
-  const isDraw = useMemo(() => {
-    if (winner) return false
-    return board[0].every((cell) => cell !== null)
-  }, [board, winner])
+  const isDraw = useMemo(() => checkDraw(board, winner), [board, winner])
   const isGameOver = Boolean(winner) || isDraw
 
   const resetGame = useCallback(() => {
-    const initialBoard: Player[][] = []
-    for (let i = 0; i < ROWS; i++) {
-      initialBoard.push(Array(COLS).fill(null))
-    }
-    setBoard(initialBoard)
+    setBoard(createEmptyBoard())
     setCurrentPlayer('red')
     setWinner(null)
   }, [])
-
-  const checkWinner = useCallback(
-    (board: Player[][], row: number, col: number, player: Player): boolean => {
-      let count = 0
-      for (let c = Math.max(0, col - 3); c <= Math.min(COLS - 1, col + 3); c++) {
-        if (board[row][c] === player) {
-          count++
-          if (count === 4) return true
-        } else {
-          count = 0
-        }
-      }
-
-      count = 0
-      for (let r = Math.max(0, row - 3); r <= Math.min(ROWS - 1, row + 3); r++) {
-        if (board[r][col] === player) {
-          count++
-          if (count === 4) return true
-        } else {
-          count = 0
-        }
-      }
-
-      count = 0
-      for (let i = -3; i <= 3; i++) {
-        const r = row + i
-        const c = col + i
-        if (r >= 0 && r < ROWS && c >= 0 && c < COLS && board[r][c] === player) {
-          count++
-          if (count === 4) return true
-        } else {
-          count = 0
-        }
-      }
-
-      count = 0
-      for (let i = -3; i <= 3; i++) {
-        const r = row + i
-        const c = col - i
-        if (r >= 0 && r < ROWS && c >= 0 && c < COLS && board[r][c] === player) {
-          count++
-          if (count === 4) return true
-        } else {
-          count = 0
-        }
-      }
-
-      return false
-    },
-    []
-  )
 
   const handleClick = useCallback(
     (col: number) => {
       if (winner || isDraw) return
 
-      for (let row = ROWS - 1; row >= 0; row--) {
-        if (!board[row][col]) {
-          const newBoard = board.map((r, i) =>
-            i === row ? r.map((c, j) => (j === col ? currentPlayer : c)) : r
-          )
-          setBoard(newBoard)
+      const result = dropDisc(board, col, currentPlayer)
+      if (!result) return
 
-          if (checkWinner(newBoard, row, col, currentPlayer)) {
-            setWinner(currentPlayer)
-          } else {
-            setCurrentPlayer(currentPlayer === 'red' ? 'yellow' : 'red')
-          }
-          break
-        }
+      const { newBoard, row } = result
+      setBoard(newBoard)
+
+      if (checkWinner(newBoard, row, col, currentPlayer)) {
+        setWinner(currentPlayer)
+      } else {
+        setCurrentPlayer(currentPlayer === 'red' ? 'yellow' : 'red')
       }
     },
-    [board, currentPlayer, winner, isDraw, checkWinner]
+    [board, currentPlayer, winner, isDraw]
   )
 
   const isColumnFull = useMemo(() => board[0].map((cell) => cell !== null), [board])
 
-  const moveCount = useMemo(
-    () => board.reduce((sum, row) => sum + row.filter((c) => c !== null).length, 0),
-    [board]
-  )
+  const moveCount = useMemo(() => countMoves(board), [board])
 
   return (
     <>
