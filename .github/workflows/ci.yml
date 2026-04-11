@@ -6,8 +6,12 @@ on:
       - main
   pull_request:
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build:
+  ci:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,11 +22,22 @@ jobs:
         with:
           node-version: 20
           cache: pnpm
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-      - name: Lint and typecheck
+      - run: pnpm install --frozen-lockfile
+      - name: Lint & Typecheck
         run: pnpm run check
       - name: Test
         run: pnpm run test
       - name: Build
         run: pnpm run build
+      - name: Report bundle size
+        run: |
+          SIZE=$(wc -c < dist/bundle.js)
+          SIZE_KB=$((SIZE / 1024))
+          echo "### Bundle Size" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| File | Size |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|------|------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| \`bundle.js\` | ${SIZE_KB} KB |" >> "$GITHUB_STEP_SUMMARY"
+      - name: Security audit
+        run: pnpm audit --prod
+        continue-on-error: true
