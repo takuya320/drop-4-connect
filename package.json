@@ -20,13 +20,13 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
-    "@mui/material": "^9.1.2",
-    "@mui/system": "^9.1.2",
+    "@mui/material": "^9.2.0",
+    "@mui/system": "^9.2.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "ts-loader": "^9.6.2",
-    "webpack": "^5.108.1",
-    "webpack-cli": "^7.1.0"
+    "webpack": "^5.108.4",
+    "webpack-cli": "^7.2.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -41,10 +41,10 @@
     "globals": "^17.7.0",
     "jsdom": "^29.1.1",
     "postcss": "^8.5.16",
-    "tailwindcss": "^4.3.1",
+    "tailwindcss": "^4.3.2",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.62.0",
+    "typescript-eslint": "^8.62.1",
     "vitest": "^4.1.9",
-    "webpack-dev-server": "^5.2.5"
+    "webpack-dev-server": "^6.0.0"
   }
 }
