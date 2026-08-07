@@ -1,10 +1,11 @@
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from '../App'
 
 const DROP_ANIMATION_MS = 350
 
 afterEach(() => {
+  cleanup()
   vi.useRealTimers()
 })
 
