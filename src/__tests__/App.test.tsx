@@ -1,8 +1,11 @@
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from '../App'
 
-afterEach(() => vi.useRealTimers())
+afterEach(() => {
+  cleanup()
+  vi.useRealTimers()
+})
 
 describe('drop position preview', () => {
   it('shows the current player disc while a column is hovered', () => {
