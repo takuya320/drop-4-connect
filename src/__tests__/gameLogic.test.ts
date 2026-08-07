@@ -5,11 +5,13 @@ import {
   COLS,
   createEmptyBoard,
   checkWinner,
+  findWinningCells,
   findDropRow,
   dropDisc,
   isDraw,
   isColumnFull,
   countMoves,
+  getWinningCells,
 } from '../gameLogic'
 
 describe('createEmptyBoard', () => {
@@ -88,6 +90,10 @@ describe('dropDisc', () => {
     expect(dropDisc(board, 1.5, 'red')).toBeNull()
   })
 
+  it('returns null when no player is provided', () => {
+    expect(dropDisc(createEmptyBoard(), 0, null)).toBeNull()
+  })
+
   it('stacks discs correctly', () => {
     const board = createEmptyBoard()
     const r1 = dropDisc(board, 0, 'red')!
@@ -163,6 +169,57 @@ describe('checkWinner', () => {
   })
 })
 
+describe('getWinningCells', () => {
+  it('returns every connected disc when a line is longer than four', () => {
+    const board = createEmptyBoard()
+    const row = ROWS - 1
+    for (let col = 0; col < 5; col++) board[row][col] = 'red'
+
+    expect(getWinningCells(board, row, 4, 'red')).toEqual([
+      { row, col: 0 },
+      { row, col: 1 },
+      { row, col: 2 },
+      { row, col: 3 },
+      { row, col: 4 },
+    ])
+  })
+
+  it('returns an empty array when the latest disc is not in a winning line', () => {
+    const board = createEmptyBoard()
+    board[ROWS - 1][0] = 'yellow'
+    board[ROWS - 1][1] = 'yellow'
+    board[ROWS - 1][2] = 'yellow'
+
+    expect(getWinningCells(board, ROWS - 1, 2, 'yellow')).toEqual([])
+  })
+})
+
+describe('findWinningCells', () => {
+  it('returns the four cells in a winning line', () => {
+    const board = createEmptyBoard()
+    board[5][1] = 'red'
+    board[4][2] = 'red'
+    board[3][3] = 'red'
+    board[2][4] = 'red'
+
+    expect(findWinningCells(board, 'red')).toEqual([
+      [2, 4],
+      [3, 3],
+      [4, 2],
+      [5, 1],
+    ])
+  })
+
+  it('returns no cells when the player has not won', () => {
+    const board = createEmptyBoard()
+    board[5][0] = 'yellow'
+    board[5][1] = 'yellow'
+    board[5][2] = 'yellow'
+
+    expect(findWinningCells(board, 'yellow')).toEqual([])
+  })
+})
+
 describe('isDraw', () => {
   it('returns false on an empty board', () => {
     expect(isDraw(createEmptyBoard(), null)).toBe(false)
@@ -207,6 +264,13 @@ describe('isColumnFull', () => {
     board[ROWS - 1][0] = 'red'
     board[ROWS - 2][0] = 'yellow'
     expect(isColumnFull(board, 0)).toBe(false)
+  })
+
+  it('treats invalid columns as unavailable', () => {
+    const board = createEmptyBoard()
+    expect(isColumnFull(board, -1)).toBe(true)
+    expect(isColumnFull(board, COLS)).toBe(true)
+    expect(isColumnFull(board, 1.5)).toBe(true)
   })
 })
 
