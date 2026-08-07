@@ -109,6 +109,8 @@ export function findWinningCells(
 }
 
 export function findDropRow(board: Player[][], col: number): number {
+  if (!Number.isInteger(col) || col < 0 || col >= COLS) return -1
+
   for (let row = ROWS - 1; row >= 0; row--) {
     if (!board[row][col]) return row
   }

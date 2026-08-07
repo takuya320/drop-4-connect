@@ -50,6 +50,13 @@ describe('findDropRow', () => {
     }
     expect(findDropRow(board, 0)).toBe(-1)
   })
+
+  it('returns -1 for an invalid column', () => {
+    const board = createEmptyBoard()
+    expect(findDropRow(board, -1)).toBe(-1)
+    expect(findDropRow(board, COLS)).toBe(-1)
+    expect(findDropRow(board, 1.5)).toBe(-1)
+  })
 })
 
 describe('dropDisc', () => {
@@ -73,6 +80,13 @@ describe('dropDisc', () => {
       board[r][2] = 'yellow'
     }
     expect(dropDisc(board, 2, 'red')).toBeNull()
+  })
+
+  it('returns null for an invalid column', () => {
+    const board = createEmptyBoard()
+    expect(dropDisc(board, -1, 'red')).toBeNull()
+    expect(dropDisc(board, COLS, 'red')).toBeNull()
+    expect(dropDisc(board, 1.5, 'red')).toBeNull()
   })
 
   it('stacks discs correctly', () => {

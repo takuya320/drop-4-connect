@@ -10,6 +10,7 @@ import {
   checkWinner,
   findWinningCells,
   dropDisc,
+  findDropRow,
   isDraw as checkDraw,
   countMoves,
 } from './gameLogic'
@@ -329,6 +330,14 @@ const Disc = styled('div')({
   },
 })
 
+const PreviewDisc = styled('div')({
+  width: '52px',
+  height: '52px',
+  borderRadius: '50%',
+  opacity: 0.45,
+  pointerEvents: 'none',
+})
+
 const FooterRow = styled('div')({
   display: 'flex',
   flexWrap: 'wrap',
@@ -583,6 +592,7 @@ function App() {
   const [board, setBoard] = useState<Player[][]>(createEmptyBoard)
   const [currentPlayer, setCurrentPlayer] = useState<Player>('red')
   const [winner, setWinner] = useState<Player>(null)
+  const [hoveredColumn, setHoveredColumn] = useState<number | null>(null)
   const columns = useMemo(() => Array.from({ length: COLS }, (_, i) => i), [])
   const hoverPlayer = currentPlayer ?? 'red'
 
@@ -592,11 +602,19 @@ function App() {
     if (!winner) return new Set<string>()
     return new Set(findWinningCells(board, winner).map(([row, col]) => `${row}-${col}`))
   }, [board, winner])
+  const previewRow = useMemo(
+    () =>
+      hoveredColumn === null || isGameOver
+        ? -1
+        : findDropRow(board, hoveredColumn),
+    [board, hoveredColumn, isGameOver]
+  )
 
   const resetGame = useCallback(() => {
     setBoard(createEmptyBoard())
     setCurrentPlayer('red')
     setWinner(null)
+    setHoveredColumn(null)
   }, [])
 
   const handleClick = useCallback(
@@ -703,8 +721,15 @@ function App() {
                   isDraw={isDraw}
                   winner={winner}
                   onDrop={handleClick}
+                  onColumnHover={setHoveredColumn}
                 />
-                <BoardGrid board={board} winningCellKeys={winningCellKeys} />
+                <BoardGrid
+                  board={board}
+                  previewColumn={hoveredColumn}
+                  previewRow={previewRow}
+                  previewPlayer={currentPlayer}
+                  winningCellKeys={winningCellKeys}
+                />
               </BoardContainer>
             </BoardShell>
 
@@ -758,9 +783,15 @@ function VictoryCelebration() {
 const BoardGrid = memo(function BoardGrid({
   board,
   winningCellKeys,
+  previewColumn,
+  previewRow,
+  previewPlayer,
 }: {
   board: Player[][]
   winningCellKeys: ReadonlySet<string>
+  previewColumn: number | null
+  previewRow: number
+  previewPlayer: Player
 }) {
   return (
     <>
@@ -773,6 +804,16 @@ const BoardGrid = memo(function BoardGrid({
                 data-winning={winningCellKeys.has(`${rowIndex}-${colIndex}`)}
               />
             )}
+            {!cell &&
+              previewPlayer &&
+              rowIndex === previewRow &&
+              colIndex === previewColumn && (
+                <PreviewDisc
+                  role="img"
+                  aria-label={`${previewPlayer === 'red' ? '赤' : '黄'}の玉の落下位置`}
+                  style={discStyles[previewPlayer]}
+                />
+              )}
           </Cell>
         ))
       )}
@@ -786,12 +827,14 @@ const ColumnButtons = memo(function ColumnButtons({
   isDraw,
   winner,
   onDrop,
+  onColumnHover,
 }: {
   columns: number[]
   isColumnFull: boolean[]
   isDraw: boolean
   winner: Player
   onDrop: (col: number) => void
+  onColumnHover: (col: number | null) => void
 }) {
   return (
     <>
@@ -800,6 +843,10 @@ const ColumnButtons = memo(function ColumnButtons({
           key={`drop-${col}`}
           variant="contained"
           onClick={() => onDrop(col)}
+          onMouseEnter={() => onColumnHover(col)}
+          onMouseLeave={() => onColumnHover(null)}
+          onFocus={() => onColumnHover(col)}
+          onBlur={() => onColumnHover(null)}
           disabled={isColumnFull[col] || Boolean(winner) || isDraw}
           disableElevation
           disableRipple
