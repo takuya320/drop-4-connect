@@ -56,11 +56,15 @@
 ```
 drop-4-connect/
 ├── src/
+│   ├── components/        # 表示責務ごとの UI コンポーネント
+│   │   └── board/         # 盤面・列操作
+│   ├── hooks/             # ゲーム進行・CPU 連携
 │   ├── index.tsx          # エントリポイント（React ルートのレンダリング）
-│   ├── App.tsx            # メインコンポーネント（UI + 状態管理）
+│   ├── App.tsx            # 画面レイアウトの合成
+│   ├── App.styles.ts      # 画面全体のスタイル
 │   ├── gameLogic.ts       # ゲームロジック（勝利判定、ボード操作等の純粋関数）
 │   ├── test-setup.ts      # テストのセットアップ
-│   └── __tests__/         # テストファイル
+│   └── __tests__/         # 機能別のテストファイル
 ├── dist/                  # ビルド成果物
 │   ├── bundle.js
 │   └── index.html
@@ -72,7 +76,7 @@ drop-4-connect/
 └── package.json
 ```
 
-**特徴**: ゲームロジック（純粋関数）は `gameLogic.ts` に分離し、テスタビリティを確保。UI・状態管理は `App.tsx` に集約。
+**特徴**: ゲームロジックは純粋関数、ゲーム進行はカスタム Hook、UI は表示責務ごとのコンポーネントに分離。機能変更時の編集範囲を限定している。
 
 ---
 
@@ -109,17 +113,18 @@ App
 
 | 種類 | コンポーネント | 説明 |
 |------|--------------|------|
-| メイン | `App` | 全状態管理とゲームロジックを担当 |
-| メモ化 | `BoardGrid`, `ColumnButtons` | `React.memo` でラップし不要な再レンダリングを防止 |
-| スタイル | `Page`, `Cell`, `Disc`, `Pill` 他 20+ | MUI `styled()` で定義されたプレゼンテーションコンポーネント |
+| メイン | `App` | 各 UI コンポーネントを合成 |
+| 状態管理 | `useGameSession`, `useCpuTurn` | ゲーム進行と CPU Worker 連携 |
+| 盤面 | `GameBoard`, `BoardGrid`, `ColumnButtons` | 盤面表示と列操作を担当 |
+| スタイル | `App.styles.ts` と各コンポーネント | 使用箇所の近くで MUI `styled()` を定義 |
 
 ---
 
 ## 5. 状態管理
 
-### 方針: ローカルステート + Hooks
+### 方針: カスタム Hooks + ローカルステート
 
-外部ライブラリ（Redux, Zustand 等）は使用せず、`useState` + `useMemo` + `useCallback` のみで管理。
+外部ライブラリ（Redux, Zustand 等）は使用せず、`useGameSession` がゲーム状態を管理し、`useCpuTurn` が Worker のライフサイクルを担当する。
 
 ### 状態の構造
 
