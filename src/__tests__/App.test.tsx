@@ -25,6 +25,7 @@ describe('drop position preview', () => {
     expect(screen.queryByTestId('disc-4-0')).not.toBeInTheDocument()
 
     fireEvent.animationEnd(fallingDisc)
+    fireEvent.mouseEnter(firstColumn)
 
     expect(
       screen.getByRole('img', { name: '黄の玉の落下位置' })

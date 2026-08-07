@@ -465,7 +465,12 @@ const FloatingKanji = styled('div')({
 })
 
 /* ─── disc styles ─── */
-const discStyles = {
+type DiscStyle = CSSProperties & {
+  '--disc-glow': string
+  '--drop-offset'?: string
+}
+
+const discStyles: Record<Exclude<Player, null>, DiscStyle> = {
   red: {
     '--disc-glow': 'rgba(220,60,40,0.55)',
     background: 'radial-gradient(circle at 35% 30%, #ff9a8b 0%, #dc3c28 40%, #8b1a1a 100%)',
@@ -720,7 +725,7 @@ function App() {
                   {
                     '--hover-bg': hoverDiscStyles[hoverPlayer].background,
                     '--hover-shadow': hoverDiscStyles[hoverPlayer].boxShadow,
-                  } as CSSProperties
+                  } as DiscStyle
                 }
               >
                 <ColumnButtons
@@ -836,7 +841,7 @@ const BoardGrid = memo(function BoardGrid({
                 <PreviewDisc
                   role="img"
                   aria-label={`${previewPlayer === 'red' ? '赤' : '黄'}の玉の落下位置`}
-                  style={discStyles[previewPlayer] as CSSProperties}
+                  style={discStyles[previewPlayer]}
                 />
               )}
           </Cell>
