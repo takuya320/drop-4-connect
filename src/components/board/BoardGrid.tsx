@@ -172,10 +172,12 @@ export const BoardGrid = memo(function BoardGrid({
                 ]
                   .filter(Boolean)
                   .join(' ')}
-                style={{
-                  ...discStyles[cell],
-                  '--drop-offset': getDropOffset(rowIndex),
-                }}
+                style={
+                  {
+                    ...discStyles[cell],
+                    '--drop-offset': getDropOffset(rowIndex),
+                  } as DiscStyle
+                }
                 onAnimationEnd={
                   isAnimating &&
                   lastMove?.row === rowIndex &&
