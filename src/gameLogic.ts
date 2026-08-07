@@ -82,6 +82,8 @@ export function dropDisc(
   col: number,
   player: Player
 ): { newBoard: Player[][]; row: number } | null {
+  if (!player || isColumnFull(board, col)) return null
+
   const row = findDropRow(board, col)
   if (row === -1) return null
   const newBoard = board.map((r, i) =>
@@ -96,7 +98,8 @@ export function isDraw(board: Player[][], winner: Player): boolean {
 }
 
 export function isColumnFull(board: Player[][], col: number): boolean {
-  return board[0][col] !== null
+  if (!Number.isInteger(col) || col < 0 || col >= COLS) return true
+  return board[0]?.[col] !== null
 }
 
 export function countMoves(board: Player[][]): number {

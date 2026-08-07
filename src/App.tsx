@@ -1,6 +1,6 @@
 import { Button, Container, GlobalStyles, Typography } from '@mui/material'
 import { styled, keyframes } from '@mui/system'
-import { useMemo, useState, useCallback, memo } from 'react'
+import { useMemo, useState, useCallback, useEffect, memo } from 'react'
 import type { CSSProperties } from 'react'
 import {
   type Player,
@@ -11,8 +11,11 @@ import {
   dropDisc,
   findDropRow,
   isDraw as checkDraw,
+  isColumnFull,
   countMoves,
 } from './gameLogic'
+
+const DROP_ANIMATION_MS = 350
 
 /* ─── keyframes ─── */
 const dropIn = keyframes`
@@ -221,27 +224,31 @@ const ColumnButton = styled(Button)({
   minWidth: '66px',
   height: '48px',
   padding: 0,
+  cursor: 'pointer',
   borderRadius: '12px',
   background: 'rgba(255, 255, 255, 0.03)',
   border: '1px solid rgba(255, 255, 255, 0.06)',
   boxShadow: 'none',
   transition: 'all 200ms cubic-bezier(0.4, 0, 0.2, 1)',
-  '&:hover': {
+  '&:not(.Mui-disabled):hover': {
     background: 'rgba(255, 255, 255, 0.08)',
     transform: 'translateY(-3px)',
     boxShadow: '0 8px 20px rgba(0,0,0,0.3)',
     border: '1px solid rgba(255,255,255,0.12)',
   },
-  '&:hover .drop-indicator': {
+  '&:not(.Mui-disabled):hover .drop-indicator': {
     background: 'var(--hover-bg)',
     boxShadow: 'var(--hover-shadow)',
     opacity: 1,
     transform: 'scale(1.1)',
   },
   '&.Mui-disabled': {
+    cursor: 'default',
     opacity: 0.25,
     background: 'transparent',
     border: '1px solid rgba(255,255,255,0.02)',
+    transform: 'none',
+    boxShadow: 'none',
   },
 })
 
@@ -450,35 +457,57 @@ function App() {
   const [currentPlayer, setCurrentPlayer] = useState<Player>('red')
   const [winner, setWinner] = useState<Player>(null)
   const [hoveredColumn, setHoveredColumn] = useState<number | null>(null)
+  const [isAnimating, setIsAnimating] = useState(false)
   const columns = useMemo(() => Array.from({ length: COLS }, (_, i) => i), [])
   const hoverPlayer = currentPlayer ?? 'red'
 
   const isDraw = useMemo(() => checkDraw(board, winner), [board, winner])
   const isGameOver = Boolean(winner) || isDraw
+  const isGameInputEnabled = !isGameOver && !isAnimating
+  const canDrop = useCallback(
+    (col: number) => isGameInputEnabled && !isColumnFull(board, col),
+    [board, isGameInputEnabled]
+  )
+  const droppableColumns = useMemo(
+    () => columns.map((col) => canDrop(col)),
+    [canDrop, columns]
+  )
   const previewRow = useMemo(
     () =>
-      hoveredColumn === null || isGameOver
+      hoveredColumn === null || !canDrop(hoveredColumn)
         ? -1
         : findDropRow(board, hoveredColumn),
-    [board, hoveredColumn, isGameOver]
+    [board, canDrop, hoveredColumn]
   )
+
+  useEffect(() => {
+    if (!isAnimating) return
+
+    const timer = window.setTimeout(() => {
+      setIsAnimating(false)
+    }, DROP_ANIMATION_MS)
+
+    return () => window.clearTimeout(timer)
+  }, [isAnimating])
 
   const resetGame = useCallback(() => {
     setBoard(createEmptyBoard())
     setCurrentPlayer('red')
     setWinner(null)
     setHoveredColumn(null)
+    setIsAnimating(false)
   }, [])
 
   const handleClick = useCallback(
     (col: number) => {
-      if (winner || isDraw) return
+      if (!canDrop(col)) return
 
       const result = dropDisc(board, col, currentPlayer)
       if (!result) return
 
       const { newBoard, row } = result
       setBoard(newBoard)
+      setIsAnimating(true)
 
       if (checkWinner(newBoard, row, col, currentPlayer)) {
         setWinner(currentPlayer)
@@ -486,10 +515,8 @@ function App() {
         setCurrentPlayer(currentPlayer === 'red' ? 'yellow' : 'red')
       }
     },
-    [board, currentPlayer, winner, isDraw]
+    [board, canDrop, currentPlayer]
   )
-
-  const isColumnFull = useMemo(() => board[0].map((cell) => cell !== null), [board])
 
   const moveCount = useMemo(() => countMoves(board), [board])
 
@@ -569,9 +596,7 @@ function App() {
               >
                 <ColumnButtons
                   columns={columns}
-                  isColumnFull={isColumnFull}
-                  isDraw={isDraw}
-                  winner={winner}
+                  droppableColumns={droppableColumns}
                   onDrop={handleClick}
                   onColumnHover={setHoveredColumn}
                 />
@@ -642,16 +667,12 @@ const BoardGrid = memo(function BoardGrid({
 
 const ColumnButtons = memo(function ColumnButtons({
   columns,
-  isColumnFull,
-  isDraw,
-  winner,
+  droppableColumns,
   onDrop,
   onColumnHover,
 }: {
   columns: number[]
-  isColumnFull: boolean[]
-  isDraw: boolean
-  winner: Player
+  droppableColumns: boolean[]
   onDrop: (col: number) => void
   onColumnHover: (col: number | null) => void
 }) {
@@ -661,12 +682,18 @@ const ColumnButtons = memo(function ColumnButtons({
         <ColumnButton
           key={`drop-${col}`}
           variant="contained"
-          onClick={() => onDrop(col)}
-          onMouseEnter={() => onColumnHover(col)}
+          onClick={() => {
+            if (droppableColumns[col]) onDrop(col)
+          }}
+          onMouseEnter={() => {
+            if (droppableColumns[col]) onColumnHover(col)
+          }}
           onMouseLeave={() => onColumnHover(null)}
-          onFocus={() => onColumnHover(col)}
+          onFocus={() => {
+            if (droppableColumns[col]) onColumnHover(col)
+          }}
           onBlur={() => onColumnHover(null)}
-          disabled={isColumnFull[col] || Boolean(winner) || isDraw}
+          disabled={!droppableColumns[col]}
           disableElevation
           disableRipple
           aria-label={`列${col + 1}に玉を落とす`}
