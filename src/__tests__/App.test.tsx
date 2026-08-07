@@ -141,6 +141,7 @@ describe('drop position preview', () => {
     expect(screen.getByText('2 手目')).toBeInTheDocument()
 
     act(() => vi.advanceTimersByTime(460))
+    act(() => vi.advanceTimersByTime(100))
     expect(screen.getByText('赤の番')).toBeInTheDocument()
     expect(
       screen.getByRole('button', { name: '列1に玉を落とす' })
