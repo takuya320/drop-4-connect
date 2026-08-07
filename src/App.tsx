@@ -1,6 +1,6 @@
 import { Button, Container, GlobalStyles, Typography } from '@mui/material'
 import { styled, keyframes } from '@mui/system'
-import { useMemo, useState, useCallback, useEffect, memo } from 'react'
+import { useMemo, useState, useCallback, memo, useEffect, useRef } from 'react'
 import type { CSSProperties } from 'react'
 import {
   type Player,
@@ -8,22 +8,33 @@ import {
   COLS,
   createEmptyBoard,
   checkWinner,
-  findWinningCells,
   dropDisc,
   findDropRow,
   isDraw as checkDraw,
-  isColumnFull,
   countMoves,
+  getWinningCells,
 } from './gameLogic'
 
-const DROP_ANIMATION_MS = 350
-
 /* ─── keyframes ─── */
-const dropIn = keyframes`
-  0%   { transform: translateY(-60px) scale(0.9); opacity: 0; }
-  60%  { transform: translateY(6px) scale(1.02); opacity: 1; }
-  80%  { transform: translateY(-2px) scale(0.99); }
-  100% { transform: translateY(0) scale(1); opacity: 1; }
+const discDrop = keyframes`
+  0% {
+    transform: translate3d(0, var(--drop-offset), 0) scale(0.96);
+    filter: brightness(0.92);
+    animation-timing-function: cubic-bezier(0.55, 0.05, 0.82, 0.34);
+  }
+  72% {
+    transform: translate3d(0, 0, 0) scaleX(1.04) scaleY(0.96);
+    filter: brightness(1.12) drop-shadow(0 0 7px var(--disc-glow));
+    animation-timing-function: cubic-bezier(0.2, 0.75, 0.3, 1);
+  }
+  86% {
+    transform: translate3d(0, -5%, 0) scaleX(0.99) scaleY(1.01);
+    filter: brightness(1.05) drop-shadow(0 0 4px var(--disc-glow));
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: none;
+  }
 `
 
 const shimmer = keyframes`
@@ -51,38 +62,14 @@ const winGlow = keyframes`
   50%      { filter: brightness(1.15) drop-shadow(0 0 20px rgba(255,200,50,0.6)); }
 `
 
-const victoryReveal = keyframes`
-  0%   { opacity: 0; transform: scale(0.35) rotate(-12deg); }
-  65%  { opacity: 1; transform: scale(1.1) rotate(2deg); }
-  100% { opacity: 1; transform: scale(1) rotate(0); }
+const winningDiscPulse = keyframes`
+  0%, 100% { transform: scale(1); filter: brightness(1) drop-shadow(0 0 3px var(--disc-glow)); }
+  50% { transform: scale(1.035); filter: brightness(1.12) drop-shadow(0 0 9px var(--disc-glow)); }
 `
 
-const auraBurst = keyframes`
-  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
-  35%  { opacity: 0.9; }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.7); }
-`
-
-const raySpin = keyframes`
-  from { transform: translate(-50%, -50%) rotate(0deg); }
-  to   { transform: translate(-50%, -50%) rotate(360deg); }
-`
-
-const confettiFall = keyframes`
-  0% {
-    opacity: 0;
-    transform: translate3d(0, -12vh, 0) rotate(0deg);
-  }
-  12% { opacity: 1; }
-  100% {
-    opacity: 0;
-    transform: translate3d(var(--drift), 108vh, 0) rotate(var(--rotation));
-  }
-`
-
-const winningDisc = keyframes`
-  0%, 100% { transform: scale(1); filter: brightness(1.15); }
-  50% { transform: scale(1.13); filter: brightness(1.45); }
+const moveChange = keyframes`
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
 `
 
 /* ─── styled components ─── */
@@ -188,6 +175,28 @@ const Pill = styled('div')<{ isWinner?: boolean }>(({ isWinner }) => ({
   ...(isWinner && { animation: `${winGlow} 2s ease-in-out infinite` }),
 }))
 
+const TurnContent = styled('div')({
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '10px',
+  transition:
+    'opacity 90ms ease, transform 90ms ease, color 180ms ease, filter 180ms ease',
+  '&[data-phase="out"]': {
+    opacity: 0,
+    transform: 'translateY(-6px)',
+  },
+  '&[data-phase="in"]': {
+    opacity: 0,
+    transform: 'translateY(6px)',
+  },
+})
+
+const MoveNumber = styled('span')({
+  display: 'inline-block',
+  fontSize: '0.8rem',
+  animation: `${moveChange} 160ms ease-out`,
+})
+
 const Dot = styled('span')({
   width: '16px',
   height: '16px',
@@ -223,7 +232,7 @@ const GameCard = styled('div')({
 })
 
 const BoardShell = styled('div')({
-  padding: '20px',
+  padding: 'clamp(9px, 2.6vw, 20px)',
   borderRadius: '20px',
   background: 'linear-gradient(170deg, #162044 0%, #0d1530 50%, #0a0f22 100%)',
   boxShadow:
@@ -247,49 +256,49 @@ const BoardShell = styled('div')({
 })
 
 const BoardContainer = styled('div')({
+  '--cell-size': 'clamp(38px, 10.2vw, 66px)',
+  '--board-gap': 'clamp(3px, 1.25vw, 8px)',
+  '--control-height': 'clamp(34px, 8vw, 48px)',
   display: 'grid',
-  gridTemplateColumns: `repeat(${COLS}, 66px)`,
-  gridTemplateRows: `48px repeat(${ROWS}, 66px)`,
-  gap: '8px',
+  gridTemplateColumns: `repeat(${COLS}, var(--cell-size))`,
+  gridTemplateRows: `var(--control-height) repeat(${ROWS}, var(--cell-size))`,
+  gap: 'var(--board-gap)',
   position: 'relative',
   zIndex: 1,
 })
 
 const ColumnButton = styled(Button)({
-  minWidth: '66px',
-  height: '48px',
+  minWidth: 'var(--cell-size)',
+  width: 'var(--cell-size)',
+  height: 'var(--control-height)',
   padding: 0,
-  cursor: 'pointer',
   borderRadius: '12px',
   background: 'rgba(255, 255, 255, 0.03)',
   border: '1px solid rgba(255, 255, 255, 0.06)',
   boxShadow: 'none',
   transition: 'all 200ms cubic-bezier(0.4, 0, 0.2, 1)',
-  '&:not(.Mui-disabled):hover': {
+  '&:hover': {
     background: 'rgba(255, 255, 255, 0.08)',
     transform: 'translateY(-3px)',
     boxShadow: '0 8px 20px rgba(0,0,0,0.3)',
     border: '1px solid rgba(255,255,255,0.12)',
   },
-  '&:not(.Mui-disabled):hover .drop-indicator': {
+  '&:hover .drop-indicator': {
     background: 'var(--hover-bg)',
     boxShadow: 'var(--hover-shadow)',
     opacity: 1,
     transform: 'scale(1.1)',
   },
   '&.Mui-disabled': {
-    cursor: 'default',
     opacity: 0.25,
     background: 'transparent',
     border: '1px solid rgba(255,255,255,0.02)',
-    transform: 'none',
-    boxShadow: 'none',
   },
 })
 
 const DropIndicator = styled('div')({
-  width: '28px',
-  height: '28px',
+  width: 'clamp(20px, 4.5vw, 28px)',
+  height: 'clamp(20px, 4.5vw, 28px)',
   borderRadius: '50%',
   transition: 'all 200ms cubic-bezier(0.4, 0, 0.2, 1)',
   background: 'rgba(255,255,255,0.06)',
@@ -298,8 +307,8 @@ const DropIndicator = styled('div')({
 })
 
 const Cell = styled('div')({
-  width: '66px',
-  height: '66px',
+  width: 'var(--cell-size)',
+  height: 'var(--cell-size)',
   borderRadius: '50%',
   background: 'radial-gradient(circle at 40% 35%, #0e1428 0%, #080c1a 60%, #050811 100%)',
   boxShadow:
@@ -313,11 +322,22 @@ const Cell = styled('div')({
 })
 
 const Disc = styled('div')({
-  width: '52px',
-  height: '52px',
+  width: '78.79%',
+  height: '78.79%',
   borderRadius: '50%',
-  animation: `${dropIn} 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)`,
   position: 'relative',
+  willChange: 'transform, filter',
+  transition: 'filter 300ms ease, opacity 300ms ease',
+  '&.is-dropping': {
+    animation: `${discDrop} 380ms both`,
+  },
+  '&.is-winning': {
+    animation: `${winningDiscPulse} 900ms ease-in-out 2`,
+  },
+  '&.is-dimmed': {
+    opacity: 0.72,
+    filter: 'brightness(0.82)',
+  },
   '&::before': {
     content: '""',
     position: 'absolute',
@@ -329,17 +349,11 @@ const Disc = styled('div')({
     background: 'rgba(255,255,255,0.25)',
     filter: 'blur(3px)',
   },
-  '&[data-winning="true"]': {
-    animation: `${winningDisc} 0.8s ease-in-out infinite`,
-    zIndex: 2,
-    outline: '3px solid rgba(255, 232, 138, 0.9)',
-    outlineOffset: '3px',
-  },
 })
 
 const PreviewDisc = styled('div')({
-  width: '52px',
-  height: '52px',
+  width: '78.79%',
+  height: '78.79%',
   borderRadius: '50%',
   opacity: 0.45,
   pointerEvents: 'none',
@@ -403,20 +417,8 @@ const WinBanner = styled('div')({
   borderRadius: '16px',
   background: 'linear-gradient(135deg, rgba(255,200,50,0.08), rgba(255,140,50,0.04))',
   border: '1px solid rgba(255,200,50,0.15)',
-  animation: `${victoryReveal} 0.75s cubic-bezier(0.2, 1.4, 0.4, 1)`,
+  animation: `${fadeSlideIn} 0.5s ease-out`,
   fontFamily: "'Shippori Mincho B1', 'Noto Serif JP', serif",
-  boxShadow: '0 0 45px rgba(255,190,40,0.12), inset 0 0 28px rgba(255,220,100,0.04)',
-  position: 'relative',
-  overflow: 'hidden',
-  '&::after': {
-    content: '""',
-    position: 'absolute',
-    inset: 0,
-    background: 'linear-gradient(110deg, transparent 25%, rgba(255,255,255,0.18) 45%, transparent 65%)',
-    backgroundSize: '250% 100%',
-    animation: `${shimmer} 2.2s ease-in-out infinite`,
-    pointerEvents: 'none',
-  },
 })
 
 const WinText = styled(Typography)({
@@ -462,90 +464,19 @@ const FloatingKanji = styled('div')({
   lineHeight: 1,
 })
 
-const VictoryLayer = styled('div')({
-  position: 'fixed',
-  inset: 0,
-  zIndex: 10,
-  overflow: 'hidden',
-  pointerEvents: 'none',
-  '&::before': {
-    content: '""',
-    position: 'absolute',
-    inset: 0,
-    background:
-      'radial-gradient(circle at 50% 42%, rgba(255,193,57,0.2), transparent 36%), rgba(4,6,14,0.16)',
-    animation: `${fadeSlideIn} 0.6s ease-out both`,
-  },
-  '@media (prefers-reduced-motion: reduce)': {
-    '&, & *': {
-      animationDuration: '0.01ms !important',
-      animationIterationCount: '1 !important',
-    },
-  },
-})
-
-const VictoryRays = styled('div')({
-  position: 'absolute',
-  left: '50%',
-  top: '42%',
-  width: 'min(92vw, 760px)',
-  aspectRatio: '1',
-  borderRadius: '50%',
-  opacity: 0.22,
-  background:
-    'repeating-conic-gradient(from 0deg, rgba(255,220,120,0.65) 0deg 5deg, transparent 5deg 14deg)',
-  maskImage: 'radial-gradient(circle, transparent 0 17%, #000 30% 68%, transparent 76%)',
-  animation: `${raySpin} 24s linear infinite`,
-})
-
-const VictoryAura = styled('div')({
-  position: 'absolute',
-  left: '50%',
-  top: '42%',
-  width: 'min(80vw, 580px)',
-  aspectRatio: '1',
-  borderRadius: '50%',
-  border: '2px solid rgba(255,218,115,0.75)',
-  boxShadow: '0 0 70px rgba(255,185,45,0.35), inset 0 0 70px rgba(255,185,45,0.16)',
-  animation: `${auraBurst} 2.2s ease-out infinite`,
-})
-
-const VictoryCrest = styled('div')({
-  position: 'absolute',
-  left: '50%',
-  top: '42%',
-  width: 'clamp(106px, 16vw, 156px)',
-  aspectRatio: '1',
-  transform: 'translate(-50%, -50%)',
-  display: 'grid',
-  placeItems: 'center',
-  borderRadius: '50%',
-  color: '#fff2bd',
-  fontFamily: "'Shippori Mincho B1', 'Noto Serif JP', serif",
-  fontSize: 'clamp(3.8rem, 9vw, 6.5rem)',
-  fontWeight: 800,
-  lineHeight: 1,
-  background:
-    'radial-gradient(circle at 38% 30%, rgba(255,244,194,0.22), rgba(118,67,15,0.76) 58%, rgba(24,15,12,0.92))',
-  border: '2px solid rgba(255,222,126,0.82)',
-  boxShadow:
-    '0 0 0 7px rgba(255,207,86,0.08), 0 0 65px rgba(255,182,39,0.5), inset 0 0 28px rgba(255,224,139,0.22)',
-  textShadow: '0 3px 0 #8d5314, 0 0 22px rgba(255,231,148,0.75)',
-  animation: `${victoryReveal} 0.9s 0.1s cubic-bezier(0.2, 1.5, 0.4, 1) both`,
-})
-
-const Confetti = styled('i')({
-  position: 'absolute',
-  top: '-6vh',
-  width: '9px',
-  height: '20px',
-  borderRadius: '2px',
-  animation: `${confettiFall} var(--duration) var(--delay) cubic-bezier(0.2, 0.7, 0.35, 1) infinite`,
-})
-
 /* ─── disc styles ─── */
-const discStyles = {
+type CustomCssProperties = CSSProperties & {
+  [key: `--${string}`]: string | number | undefined
+}
+
+type DiscStyle = CustomCssProperties & {
+  '--disc-glow': string
+  '--drop-offset'?: string
+}
+
+const discStyles: Record<Exclude<Player, null>, DiscStyle> = {
   red: {
+    '--disc-glow': 'rgba(220,60,40,0.55)',
     background: 'radial-gradient(circle at 35% 30%, #ff9a8b 0%, #dc3c28 40%, #8b1a1a 100%)',
     boxShadow:
       'inset 0 4px 8px rgba(255,180,160,0.3),' +
@@ -554,6 +485,7 @@ const discStyles = {
       '0 0 0 1px rgba(255,100,80,0.15)',
   },
   yellow: {
+    '--disc-glow': 'rgba(240,180,40,0.5)',
     background: 'radial-gradient(circle at 35% 30%, #fff3c4 0%, #f0b428 40%, #a06b00 100%)',
     boxShadow:
       'inset 0 4px 8px rgba(255,240,180,0.35),' +
@@ -585,76 +517,106 @@ const hoverDiscStyles = {
   },
 }
 
-const confettiPieces = Array.from({ length: 42 }, (_, index) => ({
-  left: `${(index * 37 + 7) % 100}%`,
-  delay: `${((index * 13) % 24) / 10}s`,
-  duration: `${3.4 + ((index * 7) % 18) / 10}s`,
-  drift: `${((index * 29) % 160) - 80}px`,
-  rotation: `${540 + ((index * 47) % 720)}deg`,
-  color: ['#ffd866', '#fff0b3', '#d84a35', '#f2a72f', '#c995ff'][index % 5],
-}))
-
 /* ─── app ─── */
+type Move = {
+  id: number
+  row: number
+  col: number
+  player: Exclude<Player, null>
+}
+
+function usePrefersReducedMotion() {
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  )
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const updatePreference = () => setPrefersReducedMotion(mediaQuery.matches)
+    mediaQuery.addEventListener('change', updatePreference)
+    return () => mediaQuery.removeEventListener('change', updatePreference)
+  }, [])
+
+  return prefersReducedMotion
+}
+
+function getDropOffset(row: number) {
+  const rowHeight = '(var(--cell-size) + var(--board-gap))'
+  return `calc(0px - ${Array.from(
+    { length: row + 1 },
+    () => rowHeight
+  ).join(' - ')})`
+}
+
 function App() {
   const [board, setBoard] = useState<Player[][]>(createEmptyBoard)
   const [currentPlayer, setCurrentPlayer] = useState<Player>('red')
   const [winner, setWinner] = useState<Player>(null)
   const [hoveredColumn, setHoveredColumn] = useState<number | null>(null)
+  const [lastMove, setLastMove] = useState<Move | null>(null)
   const [isAnimating, setIsAnimating] = useState(false)
+  const animationLock = useRef(false)
+  const nextMoveId = useRef(0)
+  const prefersReducedMotion = usePrefersReducedMotion()
   const columns = useMemo(() => Array.from({ length: COLS }, (_, i) => i), [])
   const hoverPlayer = currentPlayer ?? 'red'
 
   const isDraw = useMemo(() => checkDraw(board, winner), [board, winner])
   const isGameOver = Boolean(winner) || isDraw
-  const winningCellKeys = useMemo(() => {
-    if (!winner) return new Set<string>()
-    return new Set(findWinningCells(board, winner).map(([row, col]) => `${row}-${col}`))
-  }, [board, winner])
-  const isGameInputEnabled = !isGameOver && !isAnimating
-  const canDrop = useCallback(
-    (col: number) => isGameInputEnabled && !isColumnFull(board, col),
-    [board, isGameInputEnabled]
-  )
-  const droppableColumns = useMemo(
-    () => columns.map((col) => canDrop(col)),
-    [canDrop, columns]
-  )
   const previewRow = useMemo(
     () =>
-      hoveredColumn === null || !canDrop(hoveredColumn)
+      hoveredColumn === null || isGameOver || isAnimating
         ? -1
         : findDropRow(board, hoveredColumn),
-    [board, canDrop, hoveredColumn]
+    [board, hoveredColumn, isGameOver, isAnimating]
   )
 
-  useEffect(() => {
-    if (!isAnimating) return
-
-    const timer = window.setTimeout(() => {
-      setIsAnimating(false)
-    }, DROP_ANIMATION_MS)
-
-    return () => window.clearTimeout(timer)
-  }, [isAnimating])
-
   const resetGame = useCallback(() => {
+    animationLock.current = false
     setBoard(createEmptyBoard())
     setCurrentPlayer('red')
     setWinner(null)
     setHoveredColumn(null)
+    setLastMove(null)
     setIsAnimating(false)
   }, [])
 
-  const handleClick = useCallback(
+  const finishDropAnimation = useCallback(() => {
+    animationLock.current = false
+    setIsAnimating(false)
+  }, [])
+
+  useEffect(() => {
+    if (!lastMove || !isAnimating) return
+    const fallback = window.setTimeout(
+      finishDropAnimation,
+      prefersReducedMotion ? 30 : 460
+    )
+    return () => window.clearTimeout(fallback)
+  }, [finishDropAnimation, isAnimating, lastMove, prefersReducedMotion])
+
+  const placeDisc = useCallback(
     (col: number) => {
-      if (!canDrop(col)) return
+      if (animationLock.current || winner || isDraw || !currentPlayer) return
 
       const result = dropDisc(board, col, currentPlayer)
       if (!result) return
 
       const { newBoard, row } = result
-      setBoard(newBoard)
+      animationLock.current = true
       setIsAnimating(true)
+      setBoard(newBoard)
+      nextMoveId.current += 1
+      setLastMove({
+        id: nextMoveId.current,
+        row,
+        col,
+        player: currentPlayer,
+      })
 
       if (checkWinner(newBoard, row, col, currentPlayer)) {
         setWinner(currentPlayer)
@@ -662,10 +624,24 @@ function App() {
         setCurrentPlayer(currentPlayer === 'red' ? 'yellow' : 'red')
       }
     },
-    [board, canDrop, currentPlayer]
+    [board, currentPlayer, winner, isDraw]
   )
 
+  const isColumnFull = useMemo(() => board[0].map((cell) => cell !== null), [board])
+
   const moveCount = useMemo(() => countMoves(board), [board])
+  const winningCellKeys = useMemo(() => {
+    if (!winner || !lastMove) return new Set<string>()
+    return new Set(
+      getWinningCells(
+        board,
+        lastMove.row,
+        lastMove.col,
+        winner
+      ).map(({ row, col }) => `${row}-${col}`)
+    )
+  }, [board, lastMove, winner])
+  const showWinEmphasis = Boolean(winner) && !isAnimating
 
   return (
     <>
@@ -673,10 +649,21 @@ function App() {
         styles={{
           '*': { boxSizing: 'border-box', margin: 0, padding: 0 },
           body: { margin: 0, background: '#0a0e1a' },
+          '@media (prefers-reduced-motion: reduce)': {
+            '*, *::before, *::after': {
+              animationDuration: '1ms !important',
+              animationIterationCount: '1 !important',
+              transitionDuration: '1ms !important',
+              scrollBehavior: 'auto !important',
+            },
+            '.is-dropping': {
+              transform: 'none !important',
+              filter: 'none !important',
+            },
+          },
         }}
       />
       <Page>
-        {winner && <VictoryCelebration />}
         <StyledContainer maxWidth="md">
           <Header>
             <Title variant="h3" gutterBottom style={{ animation: isGameOver ? 'none' : undefined }}>
@@ -688,22 +675,25 @@ function App() {
           </Header>
 
           <StatusRow>
-            {!winner && !isDraw && currentPlayer && (
+            {(!winner || isAnimating) &&
+              (!isDraw || isAnimating) &&
+              currentPlayer && (
               <Pill>
-                <TurnIndicator player={currentPlayer}>
-                  <Dot style={dotStyles[currentPlayer]} />
-                </TurnIndicator>
-                <span>{currentPlayer === 'red' ? '赤' : '黄'}の番</span>
+                <AnimatedTurnStatus
+                  player={
+                    isAnimating && lastMove ? lastMove.player : currentPlayer
+                  }
+                />
               </Pill>
-            )}
+              )}
             <Pill style={{ opacity: 0.6 }}>
-              <span style={{ fontSize: '0.8rem' }}>
+              <MoveNumber key={moveCount}>
                 {moveCount} 手目
-              </span>
+              </MoveNumber>
             </Pill>
           </StatusRow>
 
-          {winner && (
+          {winner && !isAnimating && (
             <WinBanner>
               <Dot
                 style={{
@@ -719,7 +709,7 @@ function App() {
             </WinBanner>
           )}
 
-          {isDraw && (
+          {isDraw && !isAnimating && (
             <WinBanner style={{ borderColor: 'rgba(136,145,168,0.15)', background: 'rgba(136,145,168,0.05)' }}>
               <DrawText>引き分け</DrawText>
             </WinBanner>
@@ -739,13 +729,16 @@ function App() {
                   {
                     '--hover-bg': hoverDiscStyles[hoverPlayer].background,
                     '--hover-shadow': hoverDiscStyles[hoverPlayer].boxShadow,
-                  } as CSSProperties
+                  } as CustomCssProperties
                 }
               >
                 <ColumnButtons
                   columns={columns}
-                  droppableColumns={droppableColumns}
-                  onDrop={handleClick}
+                  isColumnFull={isColumnFull}
+                  isDraw={isDraw}
+                  winner={winner}
+                  isAnimating={isAnimating}
+                  onDrop={placeDisc}
                   onColumnHover={setHoveredColumn}
                 />
                 <BoardGrid
@@ -753,7 +746,11 @@ function App() {
                   previewColumn={hoveredColumn}
                   previewRow={previewRow}
                   previewPlayer={currentPlayer}
+                  lastMove={lastMove}
+                  isAnimating={isAnimating}
                   winningCellKeys={winningCellKeys}
+                  showWinEmphasis={showWinEmphasis}
+                  onDropAnimationEnd={finishDropAnimation}
                 />
               </BoardContainer>
             </BoardShell>
@@ -780,43 +777,26 @@ function App() {
 
 export default App
 
-function VictoryCelebration() {
-  return (
-    <VictoryLayer aria-hidden="true">
-      <VictoryRays />
-      <VictoryAura />
-      <VictoryCrest>勝</VictoryCrest>
-      {confettiPieces.map((piece, index) => (
-        <Confetti
-          key={index}
-          style={
-            {
-              left: piece.left,
-              background: piece.color,
-              '--delay': piece.delay,
-              '--duration': piece.duration,
-              '--drift': piece.drift,
-              '--rotation': piece.rotation,
-            } as CSSProperties
-          }
-        />
-      ))}
-    </VictoryLayer>
-  )
-}
-
 const BoardGrid = memo(function BoardGrid({
   board,
-  winningCellKeys,
   previewColumn,
   previewRow,
   previewPlayer,
+  lastMove,
+  isAnimating,
+  winningCellKeys,
+  showWinEmphasis,
+  onDropAnimationEnd,
 }: {
   board: Player[][]
-  winningCellKeys: ReadonlySet<string>
   previewColumn: number | null
   previewRow: number
   previewPlayer: Player
+  lastMove: Move | null
+  isAnimating: boolean
+  winningCellKeys: Set<string>
+  showWinEmphasis: boolean
+  onDropAnimationEnd: () => void
 }) {
   return (
     <>
@@ -825,8 +805,37 @@ const BoardGrid = memo(function BoardGrid({
           <Cell key={`${rowIndex}-${colIndex}`}>
             {cell && (
               <Disc
-                style={discStyles[cell]}
-                data-winning={winningCellKeys.has(`${rowIndex}-${colIndex}`)}
+                data-testid={`disc-${rowIndex}-${colIndex}`}
+                className={[
+                  isAnimating &&
+                  lastMove?.row === rowIndex &&
+                  lastMove.col === colIndex
+                    ? 'is-dropping'
+                    : '',
+                  showWinEmphasis &&
+                  winningCellKeys.has(`${rowIndex}-${colIndex}`)
+                    ? 'is-winning'
+                    : '',
+                  showWinEmphasis &&
+                  !winningCellKeys.has(`${rowIndex}-${colIndex}`)
+                    ? 'is-dimmed'
+                    : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                style={
+                  {
+                    ...discStyles[cell],
+                    '--drop-offset': getDropOffset(rowIndex),
+                  } as DiscStyle
+                }
+                onAnimationEnd={
+                  isAnimating &&
+                  lastMove?.row === rowIndex &&
+                  lastMove.col === colIndex
+                    ? onDropAnimationEnd
+                    : undefined
+                }
               />
             )}
             {!cell &&
@@ -848,12 +857,18 @@ const BoardGrid = memo(function BoardGrid({
 
 const ColumnButtons = memo(function ColumnButtons({
   columns,
-  droppableColumns,
+  isColumnFull,
+  isDraw,
+  winner,
+  isAnimating,
   onDrop,
   onColumnHover,
 }: {
   columns: number[]
-  droppableColumns: boolean[]
+  isColumnFull: boolean[]
+  isDraw: boolean
+  winner: Player
+  isAnimating: boolean
   onDrop: (col: number) => void
   onColumnHover: (col: number | null) => void
 }) {
@@ -863,18 +878,14 @@ const ColumnButtons = memo(function ColumnButtons({
         <ColumnButton
           key={`drop-${col}`}
           variant="contained"
-          onClick={() => {
-            if (droppableColumns[col]) onDrop(col)
-          }}
-          onMouseEnter={() => {
-            if (droppableColumns[col]) onColumnHover(col)
-          }}
+          onClick={() => onDrop(col)}
+          onMouseEnter={() => onColumnHover(col)}
           onMouseLeave={() => onColumnHover(null)}
-          onFocus={() => {
-            if (droppableColumns[col]) onColumnHover(col)
-          }}
+          onFocus={() => onColumnHover(col)}
           onBlur={() => onColumnHover(null)}
-          disabled={!droppableColumns[col]}
+          disabled={
+            isAnimating || isColumnFull[col] || Boolean(winner) || isDraw
+          }
           disableElevation
           disableRipple
           aria-label={`列${col + 1}に玉を落とす`}
@@ -885,3 +896,38 @@ const ColumnButtons = memo(function ColumnButtons({
     </>
   )
 })
+
+function AnimatedTurnStatus({
+  player,
+}: {
+  player: Exclude<Player, null>
+}) {
+  const [displayedPlayer, setDisplayedPlayer] = useState(player)
+  const [phase, setPhase] = useState<'idle' | 'out' | 'in'>('idle')
+  const displayedPlayerRef = useRef(displayedPlayer)
+
+  useEffect(() => {
+    if (player === displayedPlayerRef.current) return
+    setPhase('out')
+    let settleTimer: number | undefined
+    const swapTimer = window.setTimeout(() => {
+      displayedPlayerRef.current = player
+      setDisplayedPlayer(player)
+      setPhase('in')
+      settleTimer = window.setTimeout(() => setPhase('idle'), 100)
+    }, 90)
+    return () => {
+      window.clearTimeout(swapTimer)
+      if (settleTimer !== undefined) window.clearTimeout(settleTimer)
+    }
+  }, [player])
+
+  return (
+    <TurnContent data-phase={phase}>
+      <TurnIndicator player={displayedPlayer}>
+        <Dot style={dotStyles[displayedPlayer]} />
+      </TurnIndicator>
+      <span>{displayedPlayer === 'red' ? '赤' : '黄'}の番</span>
+    </TurnContent>
+  )
+}
