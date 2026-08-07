@@ -1,7 +1,9 @@
 import { Button, Container, GlobalStyles, Typography } from '@mui/material'
 import { styled, keyframes } from '@mui/system'
-import { useMemo, useState, useCallback, memo } from 'react'
+import { useMemo, useState, useCallback, useEffect, memo } from 'react'
 import type { CSSProperties } from 'react'
+import type { CpuDifficulty } from './cpuLogic'
+import type { CpuWorkerRequest, CpuWorkerResponse } from './cpuWorker'
 import {
   type Player,
   ROWS,
@@ -129,6 +131,53 @@ const StatusRow = styled('div')({
   alignItems: 'center',
   justifyContent: 'center',
 })
+
+const MatchSettings = styled('section')({
+  width: 'min(800px, 100%)',
+  display: 'grid',
+  gap: '12px',
+  padding: '16px 20px',
+  borderRadius: '16px',
+  background: 'rgba(255,255,255,0.025)',
+  border: '1px solid rgba(255,255,255,0.05)',
+})
+
+const SettingRow = styled('div')({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  flexWrap: 'wrap',
+  gap: '8px',
+})
+
+const SettingLabel = styled('span')({
+  color: '#707a92',
+  fontFamily: "'Zen Kaku Gothic New', 'Noto Sans JP', sans-serif",
+  fontSize: '0.78rem',
+  letterSpacing: '0.06em',
+  marginRight: '4px',
+})
+
+const SettingButton = styled(Button)<{ selected?: boolean }>(({ selected }) => ({
+  minWidth: 0,
+  padding: '7px 14px',
+  borderRadius: '10px',
+  textTransform: 'none',
+  fontFamily: "'Zen Kaku Gothic New', 'Noto Sans JP', sans-serif",
+  fontSize: '0.8rem',
+  fontWeight: 600,
+  color: selected ? '#f1d28c' : '#8d96ab',
+  background: selected ? 'rgba(212,168,83,0.12)' : 'rgba(255,255,255,0.025)',
+  border: selected
+    ? '1px solid rgba(212,168,83,0.3)'
+    : '1px solid rgba(255,255,255,0.05)',
+  boxShadow: selected ? '0 0 18px rgba(212,168,83,0.06)' : 'none',
+  '&:hover': {
+    color: selected ? '#f5dda6' : '#c5cde0',
+    background: selected ? 'rgba(212,168,83,0.16)' : 'rgba(255,255,255,0.06)',
+    borderColor: selected ? 'rgba(212,168,83,0.4)' : 'rgba(255,255,255,0.1)',
+  },
+}))
 
 const Pill = styled('div')<{ isWinner?: boolean }>(({ isWinner }) => ({
   display: 'inline-flex',
@@ -450,17 +499,22 @@ function App() {
   const [currentPlayer, setCurrentPlayer] = useState<Player>('red')
   const [winner, setWinner] = useState<Player>(null)
   const [hoveredColumn, setHoveredColumn] = useState<number | null>(null)
+  const [gameMode, setGameMode] = useState<'local' | 'cpu'>('local')
+  const [cpuDifficulty, setCpuDifficulty] = useState<CpuDifficulty>(2)
+  const [isCpuThinking, setIsCpuThinking] = useState(false)
   const columns = useMemo(() => Array.from({ length: COLS }, (_, i) => i), [])
   const hoverPlayer = currentPlayer ?? 'red'
 
   const isDraw = useMemo(() => checkDraw(board, winner), [board, winner])
   const isGameOver = Boolean(winner) || isDraw
+  const isCpuTurn = gameMode === 'cpu' && currentPlayer === 'yellow' && !isGameOver
+  const isBoardLocked = isGameOver || isCpuTurn || isCpuThinking
   const previewRow = useMemo(
     () =>
-      hoveredColumn === null || isGameOver
+      hoveredColumn === null || isBoardLocked
         ? -1
         : findDropRow(board, hoveredColumn),
-    [board, hoveredColumn, isGameOver]
+    [board, hoveredColumn, isBoardLocked]
   )
 
   const resetGame = useCallback(() => {
@@ -468,9 +522,10 @@ function App() {
     setCurrentPlayer('red')
     setWinner(null)
     setHoveredColumn(null)
+    setIsCpuThinking(false)
   }, [])
 
-  const handleClick = useCallback(
+  const playColumn = useCallback(
     (col: number) => {
       if (winner || isDraw) return
 
@@ -488,6 +543,71 @@ function App() {
     },
     [board, currentPlayer, winner, isDraw]
   )
+
+  const handleClick = useCallback(
+    (col: number) => {
+      if (isCpuTurn || isCpuThinking) return
+      playColumn(col)
+    },
+    [isCpuThinking, isCpuTurn, playColumn]
+  )
+
+  const selectGameMode = useCallback(
+    (mode: 'local' | 'cpu') => {
+      if (mode === gameMode) return
+      setGameMode(mode)
+      resetGame()
+    },
+    [gameMode, resetGame]
+  )
+
+  const selectCpuDifficulty = useCallback(
+    (difficulty: CpuDifficulty) => {
+      if (difficulty === cpuDifficulty) return
+      setCpuDifficulty(difficulty)
+      resetGame()
+    },
+    [cpuDifficulty, resetGame]
+  )
+
+  useEffect(() => {
+    if (!isCpuTurn || winner || isDraw) {
+      setIsCpuThinking(false)
+      return
+    }
+
+    let cancelled = false
+    let moveTimer: ReturnType<typeof setTimeout> | undefined
+    const startedAt = performance.now()
+    const worker = new Worker(new URL('./cpuWorker.ts', import.meta.url))
+
+    setHoveredColumn(null)
+    setIsCpuThinking(true)
+
+    worker.onmessage = (event: MessageEvent<CpuWorkerResponse>) => {
+      const remainingDelay = Math.max(0, 400 - (performance.now() - startedAt))
+      moveTimer = setTimeout(() => {
+        if (cancelled) return
+        setIsCpuThinking(false)
+        playColumn(event.data.column)
+        worker.terminate()
+      }, remainingDelay)
+    }
+
+    worker.onerror = () => {
+      if (!cancelled) setIsCpuThinking(false)
+      worker.terminate()
+    }
+
+    const request: CpuWorkerRequest = { board, difficulty: cpuDifficulty }
+    worker.postMessage(request)
+
+    return () => {
+      cancelled = true
+      worker.terminate()
+      if (moveTimer !== undefined) clearTimeout(moveTimer)
+    }
+  }, [board, cpuDifficulty, isCpuTurn, isDraw, playColumn, winner])
 
   const isColumnFull = useMemo(() => board[0].map((cell) => cell !== null), [board])
 
@@ -512,13 +632,59 @@ function App() {
             </Subtitle>
           </Header>
 
+          <MatchSettings aria-label="対戦設定">
+            <SettingRow>
+              <SettingLabel>対戦方式</SettingLabel>
+              <SettingButton
+                selected={gameMode === 'local'}
+                onClick={() => selectGameMode('local')}
+                aria-pressed={gameMode === 'local'}
+              >
+                2人で対戦
+              </SettingButton>
+              <SettingButton
+                selected={gameMode === 'cpu'}
+                onClick={() => selectGameMode('cpu')}
+                aria-pressed={gameMode === 'cpu'}
+              >
+                CPUと対戦
+              </SettingButton>
+            </SettingRow>
+            {gameMode === 'cpu' && (
+              <SettingRow aria-label="CPUの強さ">
+                <SettingLabel>CPUの強さ</SettingLabel>
+                {([
+                  [1, 'Lv.1 やさしい'],
+                  [2, 'Lv.2 ふつう'],
+                  [3, 'Lv.3 むずかしい'],
+                  [4, 'Lv.4 さいきょう'],
+                ] as const).map(([level, label]) => (
+                  <SettingButton
+                    key={level}
+                    selected={cpuDifficulty === level}
+                    onClick={() => selectCpuDifficulty(level)}
+                    aria-pressed={cpuDifficulty === level}
+                  >
+                    {label}
+                  </SettingButton>
+                ))}
+              </SettingRow>
+            )}
+          </MatchSettings>
+
           <StatusRow>
             {!winner && !isDraw && currentPlayer && (
-              <Pill>
+              <Pill aria-live="polite">
                 <TurnIndicator player={currentPlayer}>
                   <Dot style={dotStyles[currentPlayer]} />
                 </TurnIndicator>
-                <span>{currentPlayer === 'red' ? '赤' : '黄'}の番</span>
+                <span>
+                  {isCpuThinking
+                    ? 'CPUが考えています…'
+                    : gameMode === 'cpu' && currentPlayer === 'yellow'
+                      ? 'CPUの番'
+                      : `${currentPlayer === 'red' ? '赤' : '黄'}の番`}
+                </span>
               </Pill>
             )}
             <Pill style={{ opacity: 0.6 }}>
@@ -539,7 +705,11 @@ function App() {
                 }}
               />
               <WinText>
-                {winner === 'red' ? '赤' : '黄'}の勝利
+                {gameMode === 'cpu'
+                  ? winner === 'red'
+                    ? 'あなたの勝利'
+                    : 'CPUの勝利'
+                  : `${winner === 'red' ? '赤' : '黄'}の勝利`}
               </WinText>
             </WinBanner>
           )}
@@ -572,6 +742,7 @@ function App() {
                   isColumnFull={isColumnFull}
                   isDraw={isDraw}
                   winner={winner}
+                  disabled={isBoardLocked}
                   onDrop={handleClick}
                   onColumnHover={setHoveredColumn}
                 />
@@ -579,7 +750,7 @@ function App() {
                   board={board}
                   previewColumn={hoveredColumn}
                   previewRow={previewRow}
-                  previewPlayer={currentPlayer}
+                  previewPlayer={isBoardLocked ? null : currentPlayer}
                 />
               </BoardContainer>
             </BoardShell>
@@ -589,10 +760,12 @@ function App() {
             <FooterRow>
               <Legend>
                 <LegendItem>
-                  <Dot style={{ ...dotStyles.red, width: '12px', height: '12px' }} /> 赤
+                  <Dot style={{ ...dotStyles.red, width: '12px', height: '12px' }} />{' '}
+                  {gameMode === 'cpu' ? 'あなた' : '赤'}
                 </LegendItem>
                 <LegendItem>
-                  <Dot style={{ ...dotStyles.yellow, width: '12px', height: '12px' }} /> 黄
+                  <Dot style={{ ...dotStyles.yellow, width: '12px', height: '12px' }} />{' '}
+                  {gameMode === 'cpu' ? 'CPU' : '黄'}
                 </LegendItem>
               </Legend>
               <ResetButton onClick={resetGame}>もう一局</ResetButton>
@@ -645,6 +818,7 @@ const ColumnButtons = memo(function ColumnButtons({
   isColumnFull,
   isDraw,
   winner,
+  disabled,
   onDrop,
   onColumnHover,
 }: {
@@ -652,6 +826,7 @@ const ColumnButtons = memo(function ColumnButtons({
   isColumnFull: boolean[]
   isDraw: boolean
   winner: Player
+  disabled: boolean
   onDrop: (col: number) => void
   onColumnHover: (col: number | null) => void
 }) {
@@ -666,7 +841,7 @@ const ColumnButtons = memo(function ColumnButtons({
           onMouseLeave={() => onColumnHover(null)}
           onFocus={() => onColumnHover(col)}
           onBlur={() => onColumnHover(null)}
-          disabled={isColumnFull[col] || Boolean(winner) || isDraw}
+          disabled={disabled || isColumnFull[col] || Boolean(winner) || isDraw}
           disableElevation
           disableRipple
           aria-label={`列${col + 1}に玉を落とす`}
