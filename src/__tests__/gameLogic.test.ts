@@ -10,6 +10,7 @@ import {
   isDraw,
   isColumnFull,
   countMoves,
+  getWinningCells,
 } from '../gameLogic'
 
 describe('createEmptyBoard', () => {
@@ -160,6 +161,31 @@ describe('checkWinner', () => {
     const row = ROWS - 1
     placeLine(board, [[row, 2], [row, 3], [row, 4], [row, 5]], 'red')
     expect(checkWinner(board, row, 4, 'red')).toBe(true)
+  })
+})
+
+describe('getWinningCells', () => {
+  it('returns every connected disc when a line is longer than four', () => {
+    const board = createEmptyBoard()
+    const row = ROWS - 1
+    for (let col = 0; col < 5; col++) board[row][col] = 'red'
+
+    expect(getWinningCells(board, row, 4, 'red')).toEqual([
+      { row, col: 0 },
+      { row, col: 1 },
+      { row, col: 2 },
+      { row, col: 3 },
+      { row, col: 4 },
+    ])
+  })
+
+  it('returns an empty array when the latest disc is not in a winning line', () => {
+    const board = createEmptyBoard()
+    board[ROWS - 1][0] = 'yellow'
+    board[ROWS - 1][1] = 'yellow'
+    board[ROWS - 1][2] = 'yellow'
+
+    expect(getWinningCells(board, ROWS - 1, 2, 'yellow')).toEqual([])
   })
 })
 

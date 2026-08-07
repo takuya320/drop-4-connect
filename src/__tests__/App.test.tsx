@@ -17,9 +17,19 @@ describe('drop position preview', () => {
 
     fireEvent.click(firstColumn)
 
+    const fallingDisc = screen.getByTestId('disc-5-0')
+    expect(fallingDisc).toHaveClass('is-dropping')
+    expect(firstColumn).toBeDisabled()
+
+    fireEvent.click(firstColumn)
+    expect(screen.queryByTestId('disc-4-0')).not.toBeInTheDocument()
+
+    fireEvent.animationEnd(fallingDisc)
+
     expect(
       screen.getByRole('img', { name: '黄の玉の落下位置' })
     ).toBeInTheDocument()
+    expect(firstColumn).toBeEnabled()
 
     fireEvent.mouseLeave(firstColumn)
 

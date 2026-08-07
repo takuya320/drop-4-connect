@@ -3,6 +3,11 @@ export type Player = 'red' | 'yellow' | null
 export const ROWS = 6
 export const COLS = 7
 
+export type BoardPosition = {
+  row: number
+  col: number
+}
+
 export function createEmptyBoard(): Player[][] {
   const board: Player[][] = []
   for (let i = 0; i < ROWS; i++) {
@@ -17,55 +22,52 @@ export function checkWinner(
   col: number,
   player: Player
 ): boolean {
-  // horizontal
-  let count = 0
-  for (let c = Math.max(0, col - 3); c <= Math.min(COLS - 1, col + 3); c++) {
-    if (board[row][c] === player) {
-      count++
-      if (count === 4) return true
-    } else {
-      count = 0
+  return getWinningCells(board, row, col, player).length >= 4
+}
+
+export function getWinningCells(
+  board: Player[][],
+  row: number,
+  col: number,
+  player: Player
+): BoardPosition[] {
+  if (!player || board[row]?.[col] !== player) return []
+
+  const directions: ReadonlyArray<readonly [number, number]> = [
+    [0, 1],
+    [1, 0],
+    [1, 1],
+    [1, -1],
+  ]
+
+  for (const [rowStep, colStep] of directions) {
+    const line: BoardPosition[] = [{ row, col }]
+
+    for (const direction of [-1, 1] as const) {
+      let nextRow = row + rowStep * direction
+      let nextCol = col + colStep * direction
+
+      while (
+        nextRow >= 0 &&
+        nextRow < ROWS &&
+        nextCol >= 0 &&
+        nextCol < COLS &&
+        board[nextRow][nextCol] === player
+      ) {
+        if (direction === -1) {
+          line.unshift({ row: nextRow, col: nextCol })
+        } else {
+          line.push({ row: nextRow, col: nextCol })
+        }
+        nextRow += rowStep * direction
+        nextCol += colStep * direction
+      }
     }
+
+    if (line.length >= 4) return line
   }
 
-  // vertical
-  count = 0
-  for (let r = Math.max(0, row - 3); r <= Math.min(ROWS - 1, row + 3); r++) {
-    if (board[r][col] === player) {
-      count++
-      if (count === 4) return true
-    } else {
-      count = 0
-    }
-  }
-
-  // diagonal ↘
-  count = 0
-  for (let i = -3; i <= 3; i++) {
-    const r = row + i
-    const c = col + i
-    if (r >= 0 && r < ROWS && c >= 0 && c < COLS && board[r][c] === player) {
-      count++
-      if (count === 4) return true
-    } else {
-      count = 0
-    }
-  }
-
-  // diagonal ↙
-  count = 0
-  for (let i = -3; i <= 3; i++) {
-    const r = row + i
-    const c = col - i
-    if (r >= 0 && r < ROWS && c >= 0 && c < COLS && board[r][c] === player) {
-      count++
-      if (count === 4) return true
-    } else {
-      count = 0
-    }
-  }
-
-  return false
+  return []
 }
 
 export function findDropRow(board: Player[][], col: number): number {
