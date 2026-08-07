@@ -89,6 +89,10 @@ describe('dropDisc', () => {
     expect(dropDisc(board, 1.5, 'red')).toBeNull()
   })
 
+  it('returns null when no player is provided', () => {
+    expect(dropDisc(createEmptyBoard(), 0, null)).toBeNull()
+  })
+
   it('stacks discs correctly', () => {
     const board = createEmptyBoard()
     const r1 = dropDisc(board, 0, 'red')!
@@ -234,6 +238,13 @@ describe('isColumnFull', () => {
     board[ROWS - 1][0] = 'red'
     board[ROWS - 2][0] = 'yellow'
     expect(isColumnFull(board, 0)).toBe(false)
+  })
+
+  it('treats invalid columns as unavailable', () => {
+    const board = createEmptyBoard()
+    expect(isColumnFull(board, -1)).toBe(true)
+    expect(isColumnFull(board, COLS)).toBe(true)
+    expect(isColumnFull(board, 1.5)).toBe(true)
   })
 })
 
