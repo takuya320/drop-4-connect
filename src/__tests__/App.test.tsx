@@ -1,9 +1,10 @@
-import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { act, fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 import App from '../App'
 
 describe('drop position preview', () => {
   it('shows the current player disc while a column is hovered', () => {
+    vi.useFakeTimers()
     render(<App />)
     const firstColumn = screen.getByRole('button', {
       name: '列1に玉を落とす',
@@ -24,7 +25,7 @@ describe('drop position preview', () => {
     fireEvent.click(firstColumn)
     expect(screen.queryByTestId('disc-4-0')).not.toBeInTheDocument()
 
-    fireEvent.animationEnd(fallingDisc)
+    act(() => vi.advanceTimersByTime(460))
     fireEvent.mouseEnter(firstColumn)
 
     expect(
@@ -37,5 +38,6 @@ describe('drop position preview', () => {
     expect(
       screen.queryByRole('img', { name: '黄の玉の落下位置' })
     ).not.toBeInTheDocument()
+    vi.useRealTimers()
   })
 })

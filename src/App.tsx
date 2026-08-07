@@ -465,7 +465,11 @@ const FloatingKanji = styled('div')({
 })
 
 /* ─── disc styles ─── */
-type DiscStyle = CSSProperties & {
+type CustomCssProperties = CSSProperties & {
+  [key: `--${string}`]: string | number | undefined
+}
+
+type DiscStyle = CustomCssProperties & {
   '--disc-glow': string
   '--drop-offset'?: string
 }
@@ -725,7 +729,7 @@ function App() {
                   {
                     '--hover-bg': hoverDiscStyles[hoverPlayer].background,
                     '--hover-shadow': hoverDiscStyles[hoverPlayer].boxShadow,
-                  } as DiscStyle
+                  } as CustomCssProperties
                 }
               >
                 <ColumnButtons
@@ -823,7 +827,7 @@ const BoardGrid = memo(function BoardGrid({
                   {
                     ...discStyles[cell],
                     '--drop-offset': getDropOffset(rowIndex),
-                  } as CSSProperties
+                  } as DiscStyle
                 }
                 onAnimationEnd={
                   isAnimating &&
