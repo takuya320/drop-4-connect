@@ -2,6 +2,7 @@ export type Player = 'red' | 'yellow' | null
 
 export const ROWS = 6
 export const COLS = 7
+export type BoardPosition = readonly [row: number, col: number]
 
 export function createEmptyBoard(): Player[][] {
   const board: Player[][] = []
@@ -66,6 +67,45 @@ export function checkWinner(
   }
 
   return false
+}
+
+export function findWinningCells(
+  board: Player[][],
+  player: Exclude<Player, null>
+): BoardPosition[] {
+  const directions: BoardPosition[] = [
+    [0, 1],
+    [1, 0],
+    [1, 1],
+    [1, -1],
+  ]
+
+  for (let row = 0; row < ROWS; row++) {
+    for (let col = 0; col < COLS; col++) {
+      if (board[row][col] !== player) continue
+
+      for (const [rowStep, colStep] of directions) {
+        const cells = Array.from({ length: 4 }, (_, index) => {
+          return [row + rowStep * index, col + colStep * index] as const
+        })
+
+        if (
+          cells.every(
+            ([candidateRow, candidateCol]) =>
+              candidateRow >= 0 &&
+              candidateRow < ROWS &&
+              candidateCol >= 0 &&
+              candidateCol < COLS &&
+              board[candidateRow][candidateCol] === player
+          )
+        ) {
+          return cells
+        }
+      }
+    }
+  }
+
+  return []
 }
 
 export function findDropRow(board: Player[][], col: number): number {

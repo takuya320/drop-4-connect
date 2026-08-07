@@ -8,6 +8,7 @@ import {
   COLS,
   createEmptyBoard,
   checkWinner,
+  findWinningCells,
   dropDisc,
   isDraw as checkDraw,
   countMoves,
@@ -44,6 +45,40 @@ const fadeSlideIn = keyframes`
 const winGlow = keyframes`
   0%, 100% { filter: brightness(1) drop-shadow(0 0 8px rgba(255,200,50,0.3)); }
   50%      { filter: brightness(1.15) drop-shadow(0 0 20px rgba(255,200,50,0.6)); }
+`
+
+const victoryReveal = keyframes`
+  0%   { opacity: 0; transform: scale(0.35) rotate(-12deg); }
+  65%  { opacity: 1; transform: scale(1.1) rotate(2deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0); }
+`
+
+const auraBurst = keyframes`
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
+  35%  { opacity: 0.9; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.7); }
+`
+
+const raySpin = keyframes`
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to   { transform: translate(-50%, -50%) rotate(360deg); }
+`
+
+const confettiFall = keyframes`
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -12vh, 0) rotate(0deg);
+  }
+  12% { opacity: 1; }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--drift), 108vh, 0) rotate(var(--rotation));
+  }
+`
+
+const winningDisc = keyframes`
+  0%, 100% { transform: scale(1); filter: brightness(1.15); }
+  50% { transform: scale(1.13); filter: brightness(1.45); }
 `
 
 /* ─── styled components ─── */
@@ -286,6 +321,12 @@ const Disc = styled('div')({
     background: 'rgba(255,255,255,0.25)',
     filter: 'blur(3px)',
   },
+  '&[data-winning="true"]': {
+    animation: `${winningDisc} 0.8s ease-in-out infinite`,
+    zIndex: 2,
+    outline: '3px solid rgba(255, 232, 138, 0.9)',
+    outlineOffset: '3px',
+  },
 })
 
 const FooterRow = styled('div')({
@@ -346,8 +387,20 @@ const WinBanner = styled('div')({
   borderRadius: '16px',
   background: 'linear-gradient(135deg, rgba(255,200,50,0.08), rgba(255,140,50,0.04))',
   border: '1px solid rgba(255,200,50,0.15)',
-  animation: `${fadeSlideIn} 0.5s ease-out`,
+  animation: `${victoryReveal} 0.75s cubic-bezier(0.2, 1.4, 0.4, 1)`,
   fontFamily: "'Shippori Mincho B1', 'Noto Serif JP', serif",
+  boxShadow: '0 0 45px rgba(255,190,40,0.12), inset 0 0 28px rgba(255,220,100,0.04)',
+  position: 'relative',
+  overflow: 'hidden',
+  '&::after': {
+    content: '""',
+    position: 'absolute',
+    inset: 0,
+    background: 'linear-gradient(110deg, transparent 25%, rgba(255,255,255,0.18) 45%, transparent 65%)',
+    backgroundSize: '250% 100%',
+    animation: `${shimmer} 2.2s ease-in-out infinite`,
+    pointerEvents: 'none',
+  },
 })
 
 const WinText = styled(Typography)({
@@ -393,6 +446,87 @@ const FloatingKanji = styled('div')({
   lineHeight: 1,
 })
 
+const VictoryLayer = styled('div')({
+  position: 'fixed',
+  inset: 0,
+  zIndex: 10,
+  overflow: 'hidden',
+  pointerEvents: 'none',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    inset: 0,
+    background:
+      'radial-gradient(circle at 50% 42%, rgba(255,193,57,0.2), transparent 36%), rgba(4,6,14,0.16)',
+    animation: `${fadeSlideIn} 0.6s ease-out both`,
+  },
+  '@media (prefers-reduced-motion: reduce)': {
+    '&, & *': {
+      animationDuration: '0.01ms !important',
+      animationIterationCount: '1 !important',
+    },
+  },
+})
+
+const VictoryRays = styled('div')({
+  position: 'absolute',
+  left: '50%',
+  top: '42%',
+  width: 'min(92vw, 760px)',
+  aspectRatio: '1',
+  borderRadius: '50%',
+  opacity: 0.22,
+  background:
+    'repeating-conic-gradient(from 0deg, rgba(255,220,120,0.65) 0deg 5deg, transparent 5deg 14deg)',
+  maskImage: 'radial-gradient(circle, transparent 0 17%, #000 30% 68%, transparent 76%)',
+  animation: `${raySpin} 24s linear infinite`,
+})
+
+const VictoryAura = styled('div')({
+  position: 'absolute',
+  left: '50%',
+  top: '42%',
+  width: 'min(80vw, 580px)',
+  aspectRatio: '1',
+  borderRadius: '50%',
+  border: '2px solid rgba(255,218,115,0.75)',
+  boxShadow: '0 0 70px rgba(255,185,45,0.35), inset 0 0 70px rgba(255,185,45,0.16)',
+  animation: `${auraBurst} 2.2s ease-out infinite`,
+})
+
+const VictoryCrest = styled('div')({
+  position: 'absolute',
+  left: '50%',
+  top: '42%',
+  width: 'clamp(106px, 16vw, 156px)',
+  aspectRatio: '1',
+  transform: 'translate(-50%, -50%)',
+  display: 'grid',
+  placeItems: 'center',
+  borderRadius: '50%',
+  color: '#fff2bd',
+  fontFamily: "'Shippori Mincho B1', 'Noto Serif JP', serif",
+  fontSize: 'clamp(3.8rem, 9vw, 6.5rem)',
+  fontWeight: 800,
+  lineHeight: 1,
+  background:
+    'radial-gradient(circle at 38% 30%, rgba(255,244,194,0.22), rgba(118,67,15,0.76) 58%, rgba(24,15,12,0.92))',
+  border: '2px solid rgba(255,222,126,0.82)',
+  boxShadow:
+    '0 0 0 7px rgba(255,207,86,0.08), 0 0 65px rgba(255,182,39,0.5), inset 0 0 28px rgba(255,224,139,0.22)',
+  textShadow: '0 3px 0 #8d5314, 0 0 22px rgba(255,231,148,0.75)',
+  animation: `${victoryReveal} 0.9s 0.1s cubic-bezier(0.2, 1.5, 0.4, 1) both`,
+})
+
+const Confetti = styled('i')({
+  position: 'absolute',
+  top: '-6vh',
+  width: '9px',
+  height: '20px',
+  borderRadius: '2px',
+  animation: `${confettiFall} var(--duration) var(--delay) cubic-bezier(0.2, 0.7, 0.35, 1) infinite`,
+})
+
 /* ─── disc styles ─── */
 const discStyles = {
   red: {
@@ -435,6 +569,15 @@ const hoverDiscStyles = {
   },
 }
 
+const confettiPieces = Array.from({ length: 42 }, (_, index) => ({
+  left: `${(index * 37 + 7) % 100}%`,
+  delay: `${((index * 13) % 24) / 10}s`,
+  duration: `${3.4 + ((index * 7) % 18) / 10}s`,
+  drift: `${((index * 29) % 160) - 80}px`,
+  rotation: `${540 + ((index * 47) % 720)}deg`,
+  color: ['#ffd866', '#fff0b3', '#d84a35', '#f2a72f', '#c995ff'][index % 5],
+}))
+
 /* ─── app ─── */
 function App() {
   const [board, setBoard] = useState<Player[][]>(createEmptyBoard)
@@ -445,6 +588,10 @@ function App() {
 
   const isDraw = useMemo(() => checkDraw(board, winner), [board, winner])
   const isGameOver = Boolean(winner) || isDraw
+  const winningCellKeys = useMemo(() => {
+    if (!winner) return new Set<string>()
+    return new Set(findWinningCells(board, winner).map(([row, col]) => `${row}-${col}`))
+  }, [board, winner])
 
   const resetGame = useCallback(() => {
     setBoard(createEmptyBoard())
@@ -484,6 +631,7 @@ function App() {
         }}
       />
       <Page>
+        {winner && <VictoryCelebration />}
         <StyledContainer maxWidth="md">
           <Header>
             <Title variant="h3" gutterBottom style={{ animation: isGameOver ? 'none' : undefined }}>
@@ -556,7 +704,7 @@ function App() {
                   winner={winner}
                   onDrop={handleClick}
                 />
-                <BoardGrid board={board} />
+                <BoardGrid board={board} winningCellKeys={winningCellKeys} />
               </BoardContainer>
             </BoardShell>
 
@@ -582,13 +730,49 @@ function App() {
 
 export default App
 
-const BoardGrid = memo(function BoardGrid({ board }: { board: Player[][] }) {
+function VictoryCelebration() {
+  return (
+    <VictoryLayer aria-hidden="true">
+      <VictoryRays />
+      <VictoryAura />
+      <VictoryCrest>勝</VictoryCrest>
+      {confettiPieces.map((piece, index) => (
+        <Confetti
+          key={index}
+          style={
+            {
+              left: piece.left,
+              background: piece.color,
+              '--delay': piece.delay,
+              '--duration': piece.duration,
+              '--drift': piece.drift,
+              '--rotation': piece.rotation,
+            } as CSSProperties
+          }
+        />
+      ))}
+    </VictoryLayer>
+  )
+}
+
+const BoardGrid = memo(function BoardGrid({
+  board,
+  winningCellKeys,
+}: {
+  board: Player[][]
+  winningCellKeys: ReadonlySet<string>
+}) {
   return (
     <>
       {board.map((row, rowIndex) =>
         row.map((cell, colIndex) => (
           <Cell key={`${rowIndex}-${colIndex}`}>
-            {cell && <Disc style={discStyles[cell]} />}
+            {cell && (
+              <Disc
+                style={discStyles[cell]}
+                data-winning={winningCellKeys.has(`${rowIndex}-${colIndex}`)}
+              />
+            )}
           </Cell>
         ))
       )}

@@ -5,6 +5,7 @@ import {
   COLS,
   createEmptyBoard,
   checkWinner,
+  findWinningCells,
   findDropRow,
   dropDisc,
   isDraw,
@@ -146,6 +147,32 @@ describe('checkWinner', () => {
     const row = ROWS - 1
     placeLine(board, [[row, 2], [row, 3], [row, 4], [row, 5]], 'red')
     expect(checkWinner(board, row, 4, 'red')).toBe(true)
+  })
+})
+
+describe('findWinningCells', () => {
+  it('returns the four cells in a winning line', () => {
+    const board = createEmptyBoard()
+    board[5][1] = 'red'
+    board[4][2] = 'red'
+    board[3][3] = 'red'
+    board[2][4] = 'red'
+
+    expect(findWinningCells(board, 'red')).toEqual([
+      [2, 4],
+      [3, 3],
+      [4, 2],
+      [5, 1],
+    ])
+  })
+
+  it('returns no cells when the player has not won', () => {
+    const board = createEmptyBoard()
+    board[5][0] = 'yellow'
+    board[5][1] = 'yellow'
+    board[5][2] = 'yellow'
+
+    expect(findWinningCells(board, 'yellow')).toEqual([])
   })
 })
 
