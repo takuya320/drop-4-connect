@@ -1,0 +1,17 @@
+{
+  "name": "Drop 4 Connect",
+  "install": "pnpm install --frozen-lockfile",
+  "terminals": [
+    {
+      "name": "dev-server",
+      "command": "pnpm run start",
+      "description": "Webpack dev server (HMR) on http://127.0.0.1:3000"
+    }
+  ],
+  "ports": [
+    {
+      "name": "dev server",
+      "port": 3000
+    }
+  ]
+}
