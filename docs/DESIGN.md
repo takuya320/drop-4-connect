@@ -47,7 +47,7 @@
 | プラットフォーム | Vercel |
 | 出力先 | `dist/` |
 | ルーティング | SPA リライト（`/(.*) → /index.html`） |
-| Node.js | 20（`.nvmrc`） |
+| Node.js | 22（`.nvmrc`） |
 
 ---
 
