@@ -14,6 +14,12 @@ const BoardShell = styled('div')({
   '@media (max-width: 700px)': {
     padding: '8px',
   },
+  '@media (min-width: 960px)': {
+    width: '100%',
+    height: '100%',
+    containerType: 'size',
+    padding: 'clamp(12px, 2vh, 24px)',
+  },
   borderRadius: '20px',
   background:
     'linear-gradient(170deg, #162044 0%, #0d1530 50%, #0a0f22 100%)',
@@ -50,6 +56,16 @@ const BoardContainer = styled('div')({
   gap: 'var(--board-gap)',
   position: 'relative',
   zIndex: 1,
+  '@media (min-width: 960px)': {
+    '--board-gap': 'clamp(6px, 1.1cqmin, 14px)',
+    '--cell-size':
+      'min(128px, calc((100cqi - (6 * var(--board-gap))) / 7), calc((100cqb - (6 * var(--board-gap))) / 6.72))',
+    '--control-height': 'calc(var(--cell-size) * 0.72)',
+    width: 'calc((7 * var(--cell-size)) + (6 * var(--board-gap)))',
+    height: 'calc(var(--control-height) + (6 * var(--cell-size)) + (6 * var(--board-gap)))',
+    maxWidth: '100%',
+    maxHeight: '100%',
+  },
 })
 
 const hoverDiscStyles = {
