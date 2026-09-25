@@ -1,5 +1,5 @@
 import { styled } from '@mui/system'
-import type { CSSProperties, Dispatch, SetStateAction } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
 import { COLS, ROWS, type Player } from '../../gameLogic'
 import type { Move } from '../../gameTypes'
 import { BoardGrid } from './BoardGrid'
@@ -68,24 +68,6 @@ const BoardContainer = styled('div')({
   },
 })
 
-const hoverDiscStyles = {
-  red: {
-    background:
-      'radial-gradient(circle, rgba(220,60,40,0.5), rgba(220,60,40,0.15))',
-    boxShadow: 'inset 0 0 0 2px rgba(220,60,40,0.4)',
-  },
-  yellow: {
-    background:
-      'radial-gradient(circle, rgba(240,180,40,0.5), rgba(240,180,40,0.15))',
-    boxShadow: 'inset 0 0 0 2px rgba(240,180,40,0.4)',
-  },
-}
-
-type BoardCssProperties = CSSProperties & {
-  '--hover-bg': string
-  '--hover-shadow': string
-}
-
 type GameBoardProps = {
   board: Player[][]
   columns: number[]
@@ -125,16 +107,10 @@ export function GameBoard({
 }: GameBoardProps) {
   return (
     <BoardShell>
-      <BoardContainer
-        style={
-          {
-            '--hover-bg': hoverDiscStyles[currentPlayer].background,
-            '--hover-shadow': hoverDiscStyles[currentPlayer].boxShadow,
-          } as BoardCssProperties
-        }
-      >
+      <BoardContainer>
         <ColumnButtons
           columns={columns}
+          currentPlayer={currentPlayer}
           isColumnFull={isColumnFull}
           isDraw={isDraw}
           winner={winner}
