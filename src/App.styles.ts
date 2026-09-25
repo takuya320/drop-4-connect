@@ -244,7 +244,15 @@ export const LegendItem = styled('div')({
   letterSpacing: '0.02em',
 })
 
-export const ResetButton = styled(Button)({
+export const ActionRow = styled('div')({
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: '10px',
+  alignItems: 'center',
+  justifyContent: 'flex-end',
+})
+
+const actionButtonStyles = {
   borderRadius: '12px',
   padding: '10px 28px',
   fontWeight: 700,
@@ -262,7 +270,16 @@ export const ResetButton = styled(Button)({
     boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
     color: '#fff',
   },
-})
+  '&:disabled': {
+    color: 'rgba(197,205,224,0.35)',
+    border: '1px solid rgba(255,255,255,0.04)',
+    background: 'rgba(255,255,255,0.02)',
+  },
+} as const
+
+export const UndoButton = styled(Button)(actionButtonStyles)
+
+export const ResetButton = styled(Button)(actionButtonStyles)
 
 export const WinBanner = styled('div')({
   display: 'flex',

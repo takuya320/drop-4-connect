@@ -31,4 +31,34 @@ describe('CPU mode', () => {
       screen.getByRole('button', { name: '列1に玉を落とす' })
     ).toBeEnabled()
   })
+
+  it('undoes the player move together with the CPU reply', () => {
+    vi.useFakeTimers()
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'CPUと対戦' }))
+    const undo = screen.getByRole('button', { name: '1つ戻す' })
+    const firstColumn = screen.getByRole('button', {
+      name: '列1に玉を落とす',
+    })
+
+    fireEvent.click(firstColumn)
+    act(() => vi.advanceTimersByTime(460))
+    expect(undo).toBeDisabled()
+
+    act(() => vi.advanceTimersByTime(400))
+    act(() => vi.advanceTimersByTime(460))
+
+    expect(screen.getByText('2 手目')).toBeInTheDocument()
+    expect(undo).toBeEnabled()
+
+    fireEvent.click(undo)
+    act(() => vi.advanceTimersByTime(100))
+
+    expect(screen.queryByTestId('disc-5-0')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('disc-5-3')).not.toBeInTheDocument()
+    expect(screen.getByText('0 手目')).toBeInTheDocument()
+    expect(screen.getByText('赤の番')).toBeInTheDocument()
+    expect(undo).toBeDisabled()
+  })
 })
