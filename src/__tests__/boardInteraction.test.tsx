@@ -20,6 +20,9 @@ describe('board interaction', () => {
     expect(
       screen.getByRole('img', { name: '赤の玉の落下位置' })
     ).toBeInTheDocument()
+    for (const indicator of screen.getAllByTestId('drop-indicator')) {
+      expect(indicator).toHaveAttribute('data-player', 'red')
+    }
 
     fireEvent.click(firstColumn)
 
@@ -36,6 +39,9 @@ describe('board interaction', () => {
     expect(
       screen.getByRole('img', { name: '黄の玉の落下位置' })
     ).toBeInTheDocument()
+    for (const indicator of screen.getAllByTestId('drop-indicator')) {
+      expect(indicator).toHaveAttribute('data-player', 'yellow')
+    }
     expect(firstColumn).toBeEnabled()
 
     fireEvent.mouseLeave(firstColumn)
