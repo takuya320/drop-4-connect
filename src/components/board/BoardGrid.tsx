@@ -30,9 +30,11 @@ const winningDiscPulse = keyframes`
   50% { transform: scale(1.035); filter: brightness(1.12) drop-shadow(0 0 9px var(--disc-glow)); }
 `
 
-const Cell = styled('div')({
+const Cell = styled('div')<{ interactive?: boolean }>(({ interactive }) => ({
   width: 'var(--cell-size)',
   height: 'var(--cell-size)',
+  cursor: interactive ? 'pointer' : 'default',
+  touchAction: 'manipulation',
   borderRadius: '50%',
   background:
     'radial-gradient(circle at 40% 35%, #0e1428 0%, #080c1a 60%, #050811 100%)',
@@ -44,7 +46,7 @@ const Cell = styled('div')({
   alignItems: 'center',
   justifyContent: 'center',
   position: 'relative',
-})
+}))
 
 const Disc = styled('div')({
   width: '78.79%',
@@ -134,6 +136,9 @@ type BoardGridProps = {
   winningCellKeys: Set<string>
   showWinEmphasis: boolean
   onDropAnimationEnd: () => void
+  onDrop: (col: number) => void
+  isDropEnabled: boolean
+  isColumnFull: boolean[]
 }
 
 export const BoardGrid = memo(function BoardGrid({
@@ -146,12 +151,23 @@ export const BoardGrid = memo(function BoardGrid({
   winningCellKeys,
   showWinEmphasis,
   onDropAnimationEnd,
+  onDrop,
+  isDropEnabled,
+  isColumnFull,
 }: BoardGridProps) {
   return (
     <>
       {board.map((row, rowIndex) =>
         row.map((cell, colIndex) => (
-          <Cell key={`${rowIndex}-${colIndex}`}>
+          <Cell
+            key={`${rowIndex}-${colIndex}`}
+            data-testid={`cell-${rowIndex}-${colIndex}`}
+            interactive={isDropEnabled && !isColumnFull[colIndex]}
+            onClick={() => {
+              if (!isDropEnabled || isColumnFull[colIndex]) return
+              onDrop(colIndex)
+            }}
+          >
             {cell && (
               <Disc
                 data-testid={`disc-${rowIndex}-${colIndex}`}

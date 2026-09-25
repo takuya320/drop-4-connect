@@ -6,7 +6,10 @@ import { BoardGrid } from './BoardGrid'
 import { ColumnButtons } from './ColumnButtons'
 
 const BoardShell = styled('div')({
-  padding: 'clamp(9px, 2.6vw, 20px)',
+  padding: 'clamp(8px, 2.6vw, 20px)',
+  '@media (max-width: 700px)': {
+    padding: '8px',
+  },
   borderRadius: '20px',
   background:
     'linear-gradient(170deg, #162044 0%, #0d1530 50%, #0a0f22 100%)',
@@ -31,9 +34,14 @@ const BoardShell = styled('div')({
 })
 
 const BoardContainer = styled('div')({
-  '--cell-size': 'clamp(38px, 10.2vw, 66px)',
-  '--board-gap': 'clamp(3px, 1.25vw, 8px)',
-  '--control-height': 'clamp(34px, 8vw, 48px)',
+  '--cell-size': 'clamp(44px, 10.2vw, 66px)',
+  '--board-gap': 'clamp(4px, 1.25vw, 8px)',
+  '--control-height': 'clamp(52px, 12vw, 64px)',
+  '@media (max-width: 700px)': {
+    '--cell-size': 'clamp(40px, calc((100vw - 72px) / 7), 52px)',
+    '--board-gap': '4px',
+    '--control-height': '64px',
+  },
   display: 'grid',
   gridTemplateColumns: `repeat(${COLS}, var(--cell-size))`,
   gridTemplateRows: `var(--control-height) repeat(${ROWS}, var(--cell-size))`,
@@ -126,6 +134,9 @@ export function GameBoard({
           winningCellKeys={winningCellKeys}
           showWinEmphasis={showWinEmphasis}
           onDropAnimationEnd={finishDropAnimation}
+          onDrop={handleClick}
+          isDropEnabled={!isBoardLocked && !winner && !isDraw}
+          isColumnFull={isColumnFull}
         />
       </BoardContainer>
     </BoardShell>

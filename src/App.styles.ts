@@ -30,6 +30,9 @@ export const Page = styled('div')({
   position: 'relative',
   overflow: 'hidden',
   padding: '32px 16px',
+  '@media (max-width: 700px)': {
+    padding: '16px 8px',
+  },
   '&::before': {
     content: '""',
     position: 'absolute',
@@ -190,6 +193,10 @@ export const MoveNumber = styled('span')({
 export const GameCard = styled('div')({
   width: 'min(800px, 100%)',
   padding: '28px',
+  '@media (max-width: 700px)': {
+    padding: '12px 8px',
+    borderRadius: '18px',
+  },
   borderRadius: '24px',
   background:
     'linear-gradient(165deg, rgba(20,24,40,0.95) 0%, rgba(12,15,28,0.98) 100%)',
