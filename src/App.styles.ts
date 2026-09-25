@@ -58,6 +58,7 @@ export const StyledContainer = styled(Container)({
   display: 'grid',
   gap: '28px',
   justifyItems: 'center',
+  minWidth: 0,
   position: 'relative',
   zIndex: 1,
   animation: `${fadeSlideIn} 0.6s ease-out`,
@@ -192,6 +193,8 @@ export const MoveNumber = styled('span')({
 
 export const GameCard = styled('div')({
   width: 'min(800px, 100%)',
+  maxWidth: '100%',
+  minWidth: 0,
   padding: '28px',
   '@media (max-width: 700px)': {
     padding: '12px 8px',
