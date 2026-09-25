@@ -45,6 +45,16 @@ describe('board interaction', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('drops a disc when a cell in that column is tapped', () => {
+    vi.useFakeTimers()
+    render(<App />)
+
+    fireEvent.click(screen.getByTestId('cell-0-2'))
+
+    expect(screen.getByTestId('disc-5-2')).toBeInTheDocument()
+    expect(screen.getByText('1 手目')).toBeInTheDocument()
+  })
+
   it('keeps a full column disabled without showing a preview', () => {
     vi.useFakeTimers()
     render(<App />)

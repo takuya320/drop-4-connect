@@ -6,11 +6,13 @@ import type { Player } from '../../gameLogic'
 const ColumnButton = styled(Button)({
   minWidth: 'var(--cell-size)',
   width: 'var(--cell-size)',
+  minHeight: 48,
   height: 'var(--control-height)',
   padding: 0,
-  borderRadius: '12px',
-  background: 'rgba(255, 255, 255, 0.03)',
-  border: '1px solid rgba(255, 255, 255, 0.06)',
+  touchAction: 'manipulation',
+  borderRadius: '14px',
+  background: 'rgba(255, 255, 255, 0.08)',
+  border: '1px solid rgba(255, 255, 255, 0.16)',
   boxShadow: 'none',
   transition: 'all 200ms cubic-bezier(0.4, 0, 0.2, 1)',
   '&:hover': {
@@ -19,11 +21,15 @@ const ColumnButton = styled(Button)({
     boxShadow: '0 8px 20px rgba(0,0,0,0.3)',
     border: '1px solid rgba(255,255,255,0.12)',
   },
-  '&:hover .drop-indicator': {
+  '&:hover .drop-indicator, &:active:not(.Mui-disabled) .drop-indicator': {
     background: 'var(--hover-bg)',
     boxShadow: 'var(--hover-shadow)',
     opacity: 1,
-    transform: 'scale(1.1)',
+    transform: 'scale(1.08)',
+  },
+  '&:active:not(.Mui-disabled)': {
+    background: 'rgba(255, 255, 255, 0.1)',
+    transform: 'translateY(1px)',
   },
   '&.Mui-disabled': {
     opacity: 0.25,
@@ -33,13 +39,13 @@ const ColumnButton = styled(Button)({
 })
 
 const DropIndicator = styled('div')({
-  width: 'clamp(20px, 4.5vw, 28px)',
-  height: 'clamp(20px, 4.5vw, 28px)',
+  width: 'calc(var(--cell-size) * 0.86)',
+  height: 'calc(var(--cell-size) * 0.86)',
   borderRadius: '50%',
   transition: 'all 200ms cubic-bezier(0.4, 0, 0.2, 1)',
-  background: 'rgba(255,255,255,0.06)',
-  boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)',
-  opacity: 0.5,
+  background: 'rgba(255,255,255,0.14)',
+  boxShadow: 'inset 0 0 0 1.5px rgba(255,255,255,0.22)',
+  opacity: 0.9,
 })
 
 type ColumnButtonsProps = {
