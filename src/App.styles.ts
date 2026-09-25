@@ -1,4 +1,4 @@
-import { Button, Container, Typography } from '@mui/material'
+import { Button, Typography } from '@mui/material'
 import { keyframes, styled } from '@mui/system'
 
 const shimmer = keyframes`
@@ -21,6 +21,8 @@ const moveChange = keyframes`
   to { opacity: 1; transform: translateY(0); }
 `
 
+const desktopLayout = '@media (min-width: 960px)'
+
 export const Page = styled('div')({
   minHeight: '100vh',
   display: 'flex',
@@ -32,6 +34,13 @@ export const Page = styled('div')({
   padding: '32px 16px',
   '@media (max-width: 700px)': {
     padding: '16px 8px',
+  },
+  [desktopLayout]: {
+    height: '100dvh',
+    overflow: 'hidden',
+    padding: '24px 28px',
+    alignItems: 'stretch',
+    justifyContent: 'center',
   },
   '&::before': {
     content: '""',
@@ -54,19 +63,51 @@ export const Page = styled('div')({
   },
 })
 
-export const StyledContainer = styled(Container)({
-  display: 'grid',
+export const StyledContainer = styled('div')({
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
   gap: '28px',
-  justifyItems: 'center',
+  width: 'min(900px, 100%)',
   minWidth: 0,
   position: 'relative',
   zIndex: 1,
   animation: `${fadeSlideIn} 0.6s ease-out`,
+  [desktopLayout]: {
+    display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1fr) minmax(300px, 380px)',
+    gridTemplateRows: 'minmax(0, 1fr) auto',
+    gridTemplateAreas: '"board side" "board foot"',
+    alignItems: 'stretch',
+    gap: '16px 32px',
+    width: 'min(1440px, 100%)',
+    maxHeight: '100%',
+    alignSelf: 'stretch',
+    minHeight: 0,
+  },
+})
+
+export const Sidebar = styled('aside')({
+  display: 'contents',
+  [desktopLayout]: {
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    gap: '18px',
+    gridArea: 'side',
+    minWidth: 0,
+    minHeight: 0,
+    overflow: 'auto',
+    padding: '8px 4px',
+  },
 })
 
 export const Header = styled('div')({
   textAlign: 'center',
   maxWidth: '680px',
+  [desktopLayout]: {
+    maxWidth: 'none',
+  },
 })
 
 export const Title = styled(Typography)({
@@ -82,6 +123,10 @@ export const Title = styled(Typography)({
   animation: `${shimmer} 4s ease-in-out infinite`,
   textShadow: 'none',
   position: 'relative',
+  [desktopLayout]: {
+    fontSize: '2rem',
+    letterSpacing: '0.06em',
+  },
   '&::after': {
     content: '""',
     display: 'block',
@@ -106,6 +151,9 @@ export const StatusRow = styled('div')({
   gap: '14px',
   alignItems: 'center',
   justifyContent: 'center',
+  [desktopLayout]: {
+    flexDirection: 'column',
+  },
 })
 
 export const MatchSettings = styled('section')({
@@ -116,6 +164,9 @@ export const MatchSettings = styled('section')({
   borderRadius: '16px',
   background: 'rgba(255,255,255,0.025)',
   border: '1px solid rgba(255,255,255,0.05)',
+  [desktopLayout]: {
+    width: '100%',
+  },
 })
 
 export const SettingRow = styled('div')({
@@ -124,6 +175,10 @@ export const SettingRow = styled('div')({
   justifyContent: 'center',
   flexWrap: 'wrap',
   gap: '8px',
+  [desktopLayout]: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+  },
 })
 
 export const SettingLabel = styled('span')({
@@ -132,6 +187,10 @@ export const SettingLabel = styled('span')({
   fontSize: '0.78rem',
   letterSpacing: '0.06em',
   marginRight: '4px',
+  [desktopLayout]: {
+    marginRight: 0,
+    textAlign: 'center',
+  },
 })
 
 export const SettingButton = styled(Button)<{ selected?: boolean }>(
@@ -191,15 +250,7 @@ export const MoveNumber = styled('span')({
   animation: `${moveChange} 160ms ease-out`,
 })
 
-export const GameCard = styled('div')({
-  width: 'min(800px, 100%)',
-  maxWidth: '100%',
-  minWidth: 0,
-  padding: '28px',
-  '@media (max-width: 700px)': {
-    padding: '12px 8px',
-    borderRadius: '18px',
-  },
+const cardChrome = {
   borderRadius: '24px',
   background:
     'linear-gradient(165deg, rgba(20,24,40,0.95) 0%, rgba(12,15,28,0.98) 100%)',
@@ -208,13 +259,11 @@ export const GameCard = styled('div')({
     '0 40px 80px rgba(0,0,0,0.5),' +
     '0 0 0 1px rgba(255,255,255,0.03) inset,' +
     '0 1px 0 rgba(255,255,255,0.05) inset',
-  display: 'grid',
-  gap: '22px',
-  position: 'relative',
-  overflow: 'hidden',
+  position: 'relative' as const,
+  overflow: 'hidden' as const,
   '&::before': {
     content: '""',
-    position: 'absolute',
+    position: 'absolute' as const,
     top: 0,
     left: '50%',
     transform: 'translateX(-50%)',
@@ -222,6 +271,50 @@ export const GameCard = styled('div')({
     height: '1px',
     background:
       'linear-gradient(90deg, transparent, rgba(212,168,83,0.4), transparent)',
+  },
+}
+
+export const BoardColumn = styled('div')({
+  ...cardChrome,
+  width: 'min(800px, 100%)',
+  maxWidth: '100%',
+  minWidth: 0,
+  padding: '28px',
+  display: 'grid',
+  gap: '22px',
+  '@media (max-width: 700px)': {
+    padding: '12px 8px',
+    borderRadius: '18px',
+  },
+  [desktopLayout]: {
+    display: 'contents',
+  },
+})
+
+export const GameCard = styled('div')({
+  minWidth: 0,
+  position: 'relative',
+  [desktopLayout]: {
+    ...cardChrome,
+    gridArea: 'board',
+    width: '100%',
+    height: '100%',
+    minHeight: 0,
+    padding: '20px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+})
+
+export const CardFooter = styled('div')({
+  display: 'grid',
+  gap: '22px',
+  [desktopLayout]: {
+    gridArea: 'foot',
+    alignSelf: 'end',
+    gap: '14px',
+    padding: '4px 4px 0',
   },
 })
 
@@ -231,6 +324,10 @@ export const FooterRow = styled('div')({
   gap: '14px',
   alignItems: 'center',
   justifyContent: 'space-between',
+  [desktopLayout]: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+  },
 })
 
 export const Legend = styled('div')({
@@ -238,6 +335,9 @@ export const Legend = styled('div')({
   gap: '10px',
   flexWrap: 'wrap',
   alignItems: 'center',
+  [desktopLayout]: {
+    justifyContent: 'center',
+  },
 })
 
 export const LegendItem = styled('div')({
@@ -260,6 +360,12 @@ export const ActionRow = styled('div')({
   gap: '10px',
   alignItems: 'center',
   justifyContent: 'flex-end',
+  [desktopLayout]: {
+    justifyContent: 'stretch',
+    '& > button': {
+      flex: 1,
+    },
+  },
 })
 
 const actionButtonStyles = {
@@ -295,8 +401,12 @@ export const WinBanner = styled('div')({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
+  flexWrap: 'wrap',
   gap: '16px',
   padding: '20px 32px',
+  [desktopLayout]: {
+    padding: '16px',
+  },
   borderRadius: '16px',
   background:
     'linear-gradient(135deg, rgba(255,200,50,0.08), rgba(255,140,50,0.04))',
