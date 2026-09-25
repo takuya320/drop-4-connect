@@ -4,8 +4,9 @@ import { memo } from 'react'
 import type { Player } from '../../gameLogic'
 
 const ColumnButton = styled(Button)({
-  minWidth: 'var(--cell-size)',
-  width: 'var(--cell-size)',
+  minWidth: 0,
+  width: '100%',
+  maxWidth: '100%',
   minHeight: 48,
   height: 'var(--control-height)',
   padding: 0,
@@ -39,8 +40,11 @@ const ColumnButton = styled(Button)({
 })
 
 const DropIndicator = styled('div')({
-  width: 'calc(var(--cell-size) * 0.86)',
-  height: 'calc(var(--cell-size) * 0.86)',
+  width: '86%',
+  height: 'auto',
+  aspectRatio: '1',
+  maxWidth: 'calc(var(--cell-size) * 0.86)',
+  maxHeight: 'calc(var(--cell-size) * 0.86)',
   borderRadius: '50%',
   transition: 'all 200ms cubic-bezier(0.4, 0, 0.2, 1)',
   background: 'rgba(255,255,255,0.14)',

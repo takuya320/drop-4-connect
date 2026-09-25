@@ -31,8 +31,10 @@ const winningDiscPulse = keyframes`
 `
 
 const Cell = styled('div')<{ interactive?: boolean }>(({ interactive }) => ({
-  width: 'var(--cell-size)',
-  height: 'var(--cell-size)',
+  width: '100%',
+  height: '100%',
+  minWidth: 0,
+  aspectRatio: '1',
   cursor: interactive ? 'pointer' : 'default',
   touchAction: 'manipulation',
   borderRadius: '50%',

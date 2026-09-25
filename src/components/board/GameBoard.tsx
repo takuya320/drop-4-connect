@@ -6,6 +6,10 @@ import { BoardGrid } from './BoardGrid'
 import { ColumnButtons } from './ColumnButtons'
 
 const BoardShell = styled('div')({
+  width: '100%',
+  minWidth: 0,
+  boxSizing: 'border-box',
+  containerType: 'inline-size',
   padding: 'clamp(8px, 2.6vw, 20px)',
   '@media (max-width: 700px)': {
     padding: '8px',
@@ -34,16 +38,14 @@ const BoardShell = styled('div')({
 })
 
 const BoardContainer = styled('div')({
-  '--cell-size': 'clamp(44px, 10.2vw, 66px)',
-  '--board-gap': 'clamp(4px, 1.25vw, 8px)',
-  '--control-height': 'clamp(52px, 12vw, 64px)',
-  '@media (max-width: 700px)': {
-    '--cell-size': 'clamp(40px, calc((100vw - 72px) / 7), 52px)',
-    '--board-gap': '4px',
-    '--control-height': '64px',
-  },
+  '--board-gap': 'clamp(4px, 1.6cqi, 8px)',
+  '--cell-size': 'min(66px, calc((100cqi - (6 * var(--board-gap))) / 7))',
+  '--control-height': 'clamp(48px, calc(var(--cell-size) + 16px), 64px)',
+  width: 'min(100%, calc((7 * var(--cell-size)) + (6 * var(--board-gap))))',
+  maxWidth: '100%',
+  minWidth: 0,
   display: 'grid',
-  gridTemplateColumns: `repeat(${COLS}, var(--cell-size))`,
+  gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))`,
   gridTemplateRows: `var(--control-height) repeat(${ROWS}, var(--cell-size))`,
   gap: 'var(--board-gap)',
   position: 'relative',
