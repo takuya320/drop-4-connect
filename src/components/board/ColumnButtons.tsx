@@ -11,8 +11,8 @@ const ColumnButton = styled(Button)({
   padding: 0,
   touchAction: 'manipulation',
   borderRadius: '14px',
-  background: 'rgba(255, 255, 255, 0.03)',
-  border: '1px solid rgba(255, 255, 255, 0.06)',
+  background: 'rgba(255, 255, 255, 0.08)',
+  border: '1px solid rgba(255, 255, 255, 0.16)',
   boxShadow: 'none',
   transition: 'all 200ms cubic-bezier(0.4, 0, 0.2, 1)',
   '&:hover': {
@@ -39,8 +39,8 @@ const ColumnButton = styled(Button)({
 })
 
 const DropIndicator = styled('div')({
-  width: 'min(42px, 76%)',
-  height: 'min(42px, 76%)',
+  width: 'calc(var(--cell-size) * 0.86)',
+  height: 'calc(var(--cell-size) * 0.86)',
   borderRadius: '50%',
   transition: 'all 200ms cubic-bezier(0.4, 0, 0.2, 1)',
   background: 'rgba(255,255,255,0.14)',
