@@ -1,5 +1,6 @@
 import { GlobalStyles } from '@mui/material'
 import {
+  ActionRow,
   DecoLine,
   DrawText,
   FloatingKanji,
@@ -18,6 +19,7 @@ import {
   SettingRow,
   StatusRow,
   StyledContainer,
+  UndoButton,
   Subtitle,
   Title,
   WinBanner,
@@ -199,7 +201,15 @@ function App() {
                   {game.gameMode === 'cpu' ? 'CPU' : '黄'}
                 </LegendItem>
               </Legend>
-              <ResetButton onClick={game.resetGame}>もう一局</ResetButton>
+              <ActionRow>
+                <UndoButton
+                  onClick={game.undoMove}
+                  disabled={!game.canUndo}
+                >
+                  1つ戻す
+                </UndoButton>
+                <ResetButton onClick={game.resetGame}>もう一局</ResetButton>
+              </ActionRow>
             </FooterRow>
           </GameCard>
         </StyledContainer>

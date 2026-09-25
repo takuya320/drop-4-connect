@@ -147,3 +147,20 @@ export function isColumnFull(board: Player[][], col: number): boolean {
 export function countMoves(board: Player[][]): number {
   return board.reduce((sum, row) => sum + row.filter((c) => c !== null).length, 0)
 }
+
+export function undoDisc(
+  board: Player[][],
+  row: number,
+  col: number
+): Player[][] | null {
+  if (!Number.isInteger(row) || !Number.isInteger(col)) return null
+  if (row < 0 || row >= ROWS || col < 0 || col >= COLS) return null
+  if (board[row][col] === null) return null
+  if (row > 0 && board[row - 1][col] !== null) return null
+
+  return board.map((cells, rowIndex) =>
+    rowIndex === row
+      ? cells.map((cell, colIndex) => (colIndex === col ? null : cell))
+      : cells
+  )
+}

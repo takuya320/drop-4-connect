@@ -9,6 +9,7 @@ import {
   findDropRow,
   getWinningCells,
   isDraw as checkDraw,
+  undoDisc,
   type Player,
 } from '../gameLogic'
 import type { GameMode, Move } from '../gameTypes'
@@ -27,6 +28,7 @@ export function useGameSession() {
   const [cpuDifficulty, setCpuDifficulty] = useState<CpuDifficulty>(2)
   const [isCpuThinking, setIsCpuThinking] = useState(false)
   const [lastMove, setLastMove] = useState<Move | null>(null)
+  const [moveHistory, setMoveHistory] = useState<Move[]>([])
   const [isAnimating, setIsAnimating] = useState(false)
   const animationLock = useRef(false)
   const nextMoveId = useRef(0)
@@ -54,6 +56,7 @@ export function useGameSession() {
     setHoveredColumn(null)
     setIsCpuThinking(false)
     setLastMove(null)
+    setMoveHistory([])
     setIsAnimating(false)
   }, [])
 
@@ -83,12 +86,14 @@ export function useGameSession() {
       setIsAnimating(true)
       setBoard(newBoard)
       nextMoveId.current += 1
-      setLastMove({
+      const move = {
         id: nextMoveId.current,
         row,
         col,
         player: currentPlayer,
-      })
+      }
+      setLastMove(move)
+      setMoveHistory((history) => [...history, move])
 
       if (checkWinner(newBoard, row, col, currentPlayer)) {
         setWinner(currentPlayer)
@@ -98,6 +103,37 @@ export function useGameSession() {
     },
     [board, currentPlayer, winner, isDraw]
   )
+
+  const undoMove = useCallback(() => {
+    if (animationLock.current || isCpuThinking || moveHistory.length === 0) {
+      return
+    }
+
+    const steps =
+      gameMode === 'cpu' &&
+      moveHistory[moveHistory.length - 1]?.player === 'yellow'
+        ? Math.min(2, moveHistory.length)
+        : 1
+    const removed = moveHistory.slice(-steps)
+    let nextBoard = board
+
+    for (const move of [...removed].reverse()) {
+      const undone = undoDisc(nextBoard, move.row, move.col)
+      if (!undone) return
+      nextBoard = undone
+    }
+
+    const nextHistory = moveHistory.slice(0, -steps)
+    animationLock.current = false
+    setIsAnimating(false)
+    setIsCpuThinking(false)
+    setHoveredColumn(null)
+    setBoard(nextBoard)
+    setMoveHistory(nextHistory)
+    setLastMove(nextHistory[nextHistory.length - 1] ?? null)
+    setWinner(null)
+    setCurrentPlayer(removed[0].player)
+  }, [board, gameMode, isCpuThinking, moveHistory])
 
   const handleClick = useCallback(
     (col: number) => {
@@ -161,6 +197,7 @@ export function useGameSession() {
 
   return {
     board,
+    canUndo: moveHistory.length > 0 && !isAnimating && !isCpuThinking,
     columns,
     cpuDifficulty,
     currentPlayer,
@@ -183,6 +220,7 @@ export function useGameSession() {
     showWinEmphasis: Boolean(winner) && !isAnimating,
     statusLabel,
     statusPlayer,
+    undoMove,
     winner,
     winningCellKeys,
   }

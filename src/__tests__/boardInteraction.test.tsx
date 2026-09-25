@@ -82,4 +82,53 @@ describe('board interaction', () => {
     expect(screen.getByText('赤の勝利')).toBeInTheDocument()
     for (const column of columns) expect(column).toBeDisabled()
   })
+
+  it('undoes the latest disc and returns the turn to that player', () => {
+    vi.useFakeTimers()
+    render(<App />)
+    const undo = screen.getByRole('button', { name: '1つ戻す' })
+    const firstColumn = screen.getByRole('button', {
+      name: '列1に玉を落とす',
+    })
+
+    expect(undo).toBeDisabled()
+
+    fireEvent.click(firstColumn)
+    expect(undo).toBeDisabled()
+    act(() => vi.advanceTimersByTime(460))
+    act(() => vi.advanceTimersByTime(100))
+
+    expect(screen.getByTestId('disc-5-0')).toBeInTheDocument()
+    expect(screen.getByText('黄の番')).toBeInTheDocument()
+    expect(undo).toBeEnabled()
+
+    fireEvent.click(undo)
+    act(() => vi.advanceTimersByTime(100))
+
+    expect(screen.queryByTestId('disc-5-0')).not.toBeInTheDocument()
+    expect(screen.getByText('赤の番')).toBeInTheDocument()
+    expect(screen.getByText('0 手目')).toBeInTheDocument()
+    expect(undo).toBeDisabled()
+  })
+
+  it('undoes a finished game so play can continue', () => {
+    vi.useFakeTimers()
+    render(<App />)
+    const columns = screen.getAllByRole('button', {
+      name: /列\dに玉を落とす/,
+    })
+
+    for (const columnIndex of [0, 1, 0, 1, 0, 1, 0]) {
+      fireEvent.click(columns[columnIndex])
+      act(() => vi.advanceTimersByTime(460))
+    }
+
+    expect(screen.getByText('赤の勝利')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '1つ戻す' }))
+
+    expect(screen.queryByText('赤の勝利')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('disc-2-0')).not.toBeInTheDocument()
+    expect(screen.getByText('赤の番')).toBeInTheDocument()
+    expect(columns[2]).toBeEnabled()
+  })
 })

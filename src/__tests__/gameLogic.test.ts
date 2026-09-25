@@ -12,6 +12,7 @@ import {
   isColumnFull,
   countMoves,
   getWinningCells,
+  undoDisc,
 } from '../gameLogic'
 
 describe('createEmptyBoard', () => {
@@ -271,6 +272,35 @@ describe('isColumnFull', () => {
     expect(isColumnFull(board, -1)).toBe(true)
     expect(isColumnFull(board, COLS)).toBe(true)
     expect(isColumnFull(board, 1.5)).toBe(true)
+  })
+})
+
+describe('undoDisc', () => {
+  it('removes the top disc in a column without mutating the board', () => {
+    const board = createEmptyBoard()
+    const placed = dropDisc(board, 2, 'red')
+    expect(placed).not.toBeNull()
+    const undone = undoDisc(placed!.newBoard, placed!.row, 2)
+
+    expect(undone).not.toBeNull()
+    expect(undone![placed!.row][2]).toBeNull()
+    expect(placed!.newBoard[placed!.row][2]).toBe('red')
+  })
+
+  it('returns null when a disc is stacked above the target', () => {
+    const board = createEmptyBoard()
+    const first = dropDisc(board, 0, 'red')
+    const second = dropDisc(first!.newBoard, 0, 'yellow')
+
+    expect(undoDisc(second!.newBoard, first!.row, 0)).toBeNull()
+  })
+
+  it('returns null for an empty cell or an invalid position', () => {
+    const board = createEmptyBoard()
+    expect(undoDisc(board, ROWS - 1, 0)).toBeNull()
+    expect(undoDisc(board, -1, 0)).toBeNull()
+    expect(undoDisc(board, 0, COLS)).toBeNull()
+    expect(undoDisc(board, 1.5, 0)).toBeNull()
   })
 })
 
