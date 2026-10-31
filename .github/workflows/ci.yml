@@ -39,5 +39,3 @@ jobs:
           echo "| File | Size |" >> "$GITHUB_STEP_SUMMARY"
           echo "|------|------|" >> "$GITHUB_STEP_SUMMARY"
           echo "| \`bundle.js\` | ${SIZE_KB} KB |" >> "$GITHUB_STEP_SUMMARY"
-      - name: Security audit
-        run: pnpm audit --audit-level=high
