@@ -28,7 +28,7 @@ describe('board interaction', () => {
 
     const fallingDisc = screen.getByTestId('disc-5-0')
     expect(fallingDisc).toHaveClass('is-dropping')
-    expect(firstColumn).toBeDisabled()
+    expect(firstColumn).toHaveAttribute('aria-disabled', 'true')
 
     fireEvent.click(firstColumn)
     expect(screen.queryByTestId('disc-4-0')).not.toBeInTheDocument()
@@ -42,13 +42,56 @@ describe('board interaction', () => {
     for (const indicator of screen.getAllByTestId('drop-indicator')) {
       expect(indicator).toHaveAttribute('data-player', 'yellow')
     }
-    expect(firstColumn).toBeEnabled()
+    expect(firstColumn).not.toHaveAttribute('aria-disabled')
 
     fireEvent.mouseLeave(firstColumn)
 
     expect(
       screen.queryByRole('img', { name: '黄の玉の落下位置' })
     ).not.toBeInTheDocument()
+  })
+
+  it('keeps keyboard focus on a column while the board is locked after a drop', () => {
+    vi.useFakeTimers()
+    render(<App />)
+    const firstColumn = screen.getByRole('button', {
+      name: '列1に玉を落とす',
+    })
+
+    firstColumn.focus()
+    fireEvent.click(firstColumn)
+
+    expect(firstColumn).toHaveAttribute('aria-disabled', 'true')
+    expect(firstColumn).toHaveFocus()
+    expect(firstColumn).toBeEnabled()
+  })
+
+  it('announces the result through a status region', () => {
+    vi.useFakeTimers()
+    render(<App />)
+    const columns = screen.getAllByRole('button', {
+      name: /列\dに玉を落とす/,
+    })
+
+    for (const columnIndex of [0, 1, 0, 1, 0, 1, 0]) {
+      fireEvent.click(columns[columnIndex])
+      act(() => vi.advanceTimersByTime(460))
+    }
+
+    expect(
+      screen.getAllByRole('status').map((region) => region.textContent)
+    ).toContain('赤の勝利')
+  })
+
+  it('labels each placed disc with its position and colour', () => {
+    vi.useFakeTimers()
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: '列3に玉を落とす' }))
+
+    expect(
+      screen.getByRole('img', { name: '6行3列 赤の玉' })
+    ).toBeInTheDocument()
   })
 
   it('drops a disc when a cell in that column is tapped', () => {

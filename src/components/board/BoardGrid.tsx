@@ -150,6 +150,8 @@ export const BoardGrid = memo(function BoardGrid({
           >
             {cell && (
               <Disc
+                role="img"
+                aria-label={`${rowIndex + 1}行${colIndex + 1}列 ${cell === 'red' ? '赤' : '黄'}の玉`}
                 data-testid={`disc-${rowIndex}-${colIndex}`}
                 className={[
                   isAnimating &&
