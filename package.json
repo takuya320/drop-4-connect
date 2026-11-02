@@ -1,15 +1,14 @@
 {
   "name": "drop-4-connect",
   "version": "1.0.0",
+  "private": true,
   "description": "Drop 4 Connect",
-  "main": "index.js",
   "packageManager": "pnpm@10.19.0",
   "scripts": {
     "build": "webpack --mode production",
     "check": "pnpm run lint && pnpm run typecheck",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "start": "webpack serve --mode development",
-    "tailwind": "tailwindcss init -p",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
@@ -31,14 +30,11 @@
     "@testing-library/react": "^16.3.3",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "autoprefixer": "^10.6.2",
     "eslint": "^10.13.0",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.13.0",
     "jsdom": "^30.1.3",
-    "postcss": "^8.5.32",
-    "tailwindcss": "^4.3.3",
     "ts-loader": "^9.6.2",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.72.1",
@@ -49,11 +45,6 @@
     "webpack-dev-server": "^6.1.0"
   },
   "pnpm": {
-    "auditConfig": {
-      "ignoreGhsas": [
-        "GHSA-vfj7-8cjw-p6xm"
-      ]
-    },
     "overrides": {
       "body-parser": "^2.4.0",
       "fast-uri": "^3.1.7",
