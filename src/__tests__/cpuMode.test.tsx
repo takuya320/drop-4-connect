@@ -10,6 +10,7 @@ afterEach(() => {
 describe('CPU mode', () => {
   it('falls back to a legal CPU move when the Worker is unavailable', () => {
     vi.useFakeTimers()
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
     render(<App />)
 
     fireEvent.click(screen.getByRole('button', { name: 'CPUと対戦' }))
@@ -30,6 +31,11 @@ describe('CPU mode', () => {
     expect(
       screen.getByRole('button', { name: '列1に玉を落とす' })
     ).toBeEnabled()
+    expect(consoleError).toHaveBeenCalledWith(
+      expect.stringContaining('failed to start'),
+      expect.anything()
+    )
+    consoleError.mockRestore()
   })
 
   it('undoes the player move together with the CPU reply', () => {

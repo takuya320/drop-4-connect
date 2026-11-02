@@ -32,7 +32,8 @@ export function useCpuTurn({
     let moveTimer: ReturnType<typeof setTimeout> | undefined
     const startedAt = performance.now()
     let worker: Worker | null = null
-    const fallbackColumn = getAvailableMoves(board)[0] ?? -1
+    const availableMoves = getAvailableMoves(board)
+    const fallbackColumn = availableMoves[0] ?? -1
 
     setHoveredColumn(null)
     setIsThinking(true)
@@ -49,23 +50,32 @@ export function useCpuTurn({
       }, remainingDelay)
     }
 
-    try {
-      worker = new Worker(new URL('../cpuWorker.ts', import.meta.url))
-      worker.onmessage = (event: MessageEvent<CpuWorkerResponse>) => {
-        scheduleMove(event.data.column)
-      }
-      worker.onerror = () => {
-        worker?.terminate()
-        worker = null
-        scheduleMove(fallbackColumn)
-      }
-
-      const request: CpuWorkerRequest = { board, difficulty }
-      worker.postMessage(request)
-    } catch {
+    // The CPU level silently drops to "first legal column" here, so make the
+    // cause visible instead of swallowing it.
+    const fallBack = (reason: string, detail?: unknown) => {
+      console.error(`CPU worker failed (${reason}); using fallback move`, detail)
       worker?.terminate()
       worker = null
       scheduleMove(fallbackColumn)
+    }
+
+    try {
+      worker = new Worker(new URL('../cpuWorker.ts', import.meta.url))
+      worker.onmessage = (event: MessageEvent<CpuWorkerResponse>) => {
+        const column: unknown = event.data?.column
+        if (typeof column !== 'number' || !availableMoves.includes(column)) {
+          fallBack('illegal move received', event.data)
+          return
+        }
+        scheduleMove(column)
+      }
+      worker.onerror = (event) => fallBack('worker error', event.message)
+      worker.onmessageerror = (event) => fallBack('unreadable message', event)
+
+      const request: CpuWorkerRequest = { board, difficulty }
+      worker.postMessage(request)
+    } catch (error) {
+      fallBack('failed to start', error)
     }
 
     return () => {
