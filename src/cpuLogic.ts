@@ -14,16 +14,21 @@ export interface CpuOptions {
   timeLimitMs?: number
 }
 
-interface SearchContext {
+export interface SearchContext {
   cpu: DiscPlayer
   deadline: number
   table?: Map<string, TableEntry>
   timedOut: boolean
 }
 
+type TableBound = 'exact' | 'lower' | 'upper'
+
+// Alpha-beta cutoffs only prove a bound on a node's value, so the entry must
+// record which kind of bound `score` is before it can be reused.
 interface TableEntry {
   depth: number
   score: number
+  bound: TableBound
 }
 
 interface SearchResult {
@@ -181,9 +186,16 @@ function minimax(
   const moves = getAvailableMoves(board)
   if (depth === 0 || moves.length === 0) return evaluateBoard(board, context.cpu)
 
+  const originalAlpha = alpha
+  const originalBeta = beta
   const key = context.table ? boardKey(board, player) : ''
   const cached = context.table?.get(key)
-  if (cached && cached.depth >= depth) return cached.score
+  if (cached && cached.depth >= depth) {
+    if (cached.bound === 'exact') return cached.score
+    if (cached.bound === 'lower') alpha = Math.max(alpha, cached.score)
+    else beta = Math.min(beta, cached.score)
+    if (alpha >= beta) return cached.score
+  }
 
   const maximizing = player === context.cpu
   let best = maximizing ? -Infinity : Infinity
@@ -218,11 +230,13 @@ function minimax(
     if (alpha >= beta) break
   }
 
-  context.table?.set(key, { depth, score: best })
+  const bound: TableBound =
+    best <= originalAlpha ? 'upper' : best >= originalBeta ? 'lower' : 'exact'
+  context.table?.set(key, { depth, score: best, bound })
   return best
 }
 
-function searchAtDepth(
+export function searchAtDepth(
   board: Player[][],
   cpu: DiscPlayer,
   depth: number,
