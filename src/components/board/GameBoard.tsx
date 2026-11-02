@@ -114,7 +114,7 @@ export function GameBoard({
           isColumnFull={isColumnFull}
           isDraw={isDraw}
           winner={winner}
-          disabled={isBoardLocked}
+          locked={isBoardLocked}
           onDrop={handleClick}
           onColumnHover={setHoveredColumn}
         />

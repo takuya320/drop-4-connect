@@ -35,7 +35,7 @@ describe('game animations', () => {
     expect(screen.getByTestId('disc-5-5')).toHaveClass('is-dimmed')
   })
 
-  it('disables every column during the drop animation', () => {
+  it('locks every column during the drop animation', () => {
     vi.useFakeTimers()
     render(<App />)
     const columns = screen.getAllByRole('button', {
@@ -43,9 +43,13 @@ describe('game animations', () => {
     })
 
     fireEvent.click(columns[0])
-    for (const column of columns) expect(column).toBeDisabled()
+    for (const column of columns) {
+      expect(column).toHaveAttribute('aria-disabled', 'true')
+    }
 
     act(() => vi.advanceTimersByTime(460))
-    for (const column of columns) expect(column).toBeEnabled()
+    for (const column of columns) {
+      expect(column).not.toHaveAttribute('aria-disabled')
+    }
   })
 })

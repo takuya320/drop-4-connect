@@ -45,10 +45,14 @@ const ColumnButton = styled(Button)({
     background: 'transparent',
     border: 'none',
   },
-  '&.Mui-disabled .drop-indicator': {
+  '&.Mui-disabled .drop-indicator, &[aria-disabled="true"] .drop-indicator': {
     opacity: 0.22,
     filter: 'saturate(0.55) brightness(0.72)',
     transform: 'scale(0.86)',
+  },
+  // Temporarily locked (drop animation, CPU turn) but still focusable.
+  '&[aria-disabled="true"]': {
+    pointerEvents: 'none',
   },
 })
 
@@ -83,7 +87,7 @@ type ColumnButtonsProps = {
   isColumnFull: boolean[]
   isDraw: boolean
   winner: Player
-  disabled: boolean
+  locked: boolean
   onDrop: (col: number) => void
   onColumnHover: (col: number | null) => void
 }
@@ -94,7 +98,7 @@ export const ColumnButtons = memo(function ColumnButtons({
   isColumnFull,
   isDraw,
   winner,
-  disabled,
+  locked,
   onDrop,
   onColumnHover,
 }: ColumnButtonsProps) {
@@ -104,12 +108,17 @@ export const ColumnButtons = memo(function ColumnButtons({
         <ColumnButton
           key={`drop-${col}`}
           variant="contained"
-          onClick={() => onDrop(col)}
+          onClick={() => {
+            if (!locked) onDrop(col)
+          }}
           onMouseEnter={() => onColumnHover(col)}
           onMouseLeave={() => onColumnHover(null)}
           onFocus={() => onColumnHover(col)}
           onBlur={() => onColumnHover(null)}
-          disabled={disabled || isColumnFull[col] || Boolean(winner) || isDraw}
+          // Only a column that cannot be played again is truly disabled. While
+          // the board is merely locked, keep keyboard focus on the button.
+          disabled={isColumnFull[col] || Boolean(winner) || isDraw}
+          aria-disabled={locked || undefined}
           disableElevation
           disableRipple
           aria-label={`列${col + 1}に玉を落とす`}

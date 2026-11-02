@@ -129,7 +129,7 @@ function App() {
             </StatusRow>
 
             {game.winner && !game.isAnimating && (
-              <WinBanner>
+              <WinBanner role="status">
                 <PlayerDot player={game.winner} size={22} />
                 <WinText>
                   {game.gameMode === 'cpu'
@@ -143,6 +143,7 @@ function App() {
 
             {game.isDraw && !game.isAnimating && (
               <WinBanner
+                role="status"
                 style={{
                   borderColor: 'rgba(136,145,168,0.15)',
                   background: 'rgba(136,145,168,0.05)',
