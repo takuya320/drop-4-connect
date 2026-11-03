@@ -16,6 +16,17 @@ const winGlow = keyframes`
   50%      { filter: brightness(1.15) drop-shadow(0 0 20px rgba(255,200,50,0.6)); }
 `
 
+const bannerReveal = keyframes`
+  0%   { opacity: 0; transform: translateY(16px) scale(0.92); filter: blur(4px); }
+  60%  { opacity: 1; transform: translateY(0) scale(1.03); filter: blur(0); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+`
+
+const bannerSweep = keyframes`
+  0%, 55% { transform: translateX(-120%) skewX(-20deg); }
+  100%    { transform: translateX(320%) skewX(-20deg); }
+`
+
 const moveChange = keyframes`
   from { opacity: 0; transform: translateY(3px); }
   to { opacity: 1; transform: translateY(0); }
@@ -398,6 +409,8 @@ export const UndoButton = styled(Button)(actionButtonStyles)
 export const ResetButton = styled(Button)(actionButtonStyles)
 
 export const WinBanner = styled('div')({
+  position: 'relative',
+  overflow: 'hidden',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -409,18 +422,39 @@ export const WinBanner = styled('div')({
   },
   borderRadius: '16px',
   background:
-    'linear-gradient(135deg, rgba(255,200,50,0.08), rgba(255,140,50,0.04))',
-  border: '1px solid rgba(255,200,50,0.15)',
-  animation: `${fadeSlideIn} 0.5s ease-out`,
+    'linear-gradient(135deg, rgba(255,200,50,0.16), rgba(255,140,50,0.06))',
+  border: '1px solid rgba(255,200,50,0.4)',
+  boxShadow:
+    '0 0 32px rgba(255,190,60,0.18), inset 0 0 18px rgba(255,200,80,0.08)',
+  animation: `${bannerReveal} 0.6s cubic-bezier(0.2, 0.8, 0.2, 1)`,
   fontFamily: "'Shippori Mincho B1', 'Noto Serif JP', serif",
+  // A band of light that sweeps across the banner every few seconds.
+  '&::after': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    width: '35%',
+    background:
+      'linear-gradient(90deg, transparent, rgba(255,240,200,0.22), transparent)',
+    animation: `${bannerSweep} 3.2s ease-in-out 0.6s infinite`,
+    pointerEvents: 'none',
+  },
 })
 
 export const WinText = styled(Typography)({
   fontFamily: "'Shippori Mincho B1', 'Noto Serif JP', serif",
-  fontWeight: 700,
-  color: '#ffd866',
-  letterSpacing: '0.1em',
-  fontSize: '1.3rem',
+  fontWeight: 800,
+  color: 'transparent',
+  backgroundImage:
+    'linear-gradient(135deg, #fff3c4 0%, #ffd866 40%, #e8a93a 70%, #fff3c4 100%)',
+  backgroundSize: '200% auto',
+  backgroundClip: 'text',
+  WebkitBackgroundClip: 'text',
+  animation: `${shimmer} 3s ease-in-out infinite`,
+  letterSpacing: '0.14em',
+  fontSize: '1.5rem',
 })
 
 export const DrawText = styled(Typography)({

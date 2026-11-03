@@ -26,9 +26,32 @@ const discDrop = keyframes`
   }
 `
 
+const winningDiscPop = keyframes`
+  0% { transform: scale(1); filter: brightness(1); }
+  40% {
+    transform: scale(1.22);
+    filter: brightness(1.4) drop-shadow(0 0 16px rgba(255,210,110,0.95));
+  }
+  100% {
+    transform: scale(1.06);
+    filter: brightness(1.12) drop-shadow(0 0 8px var(--disc-glow));
+  }
+`
+
 const winningDiscPulse = keyframes`
-  0%, 100% { transform: scale(1); filter: brightness(1) drop-shadow(0 0 3px var(--disc-glow)); }
-  50% { transform: scale(1.035); filter: brightness(1.12) drop-shadow(0 0 9px var(--disc-glow)); }
+  0%, 100% {
+    transform: scale(1.06);
+    filter: brightness(1.12) drop-shadow(0 0 8px var(--disc-glow));
+  }
+  50% {
+    transform: scale(1.1);
+    filter: brightness(1.25) drop-shadow(0 0 16px rgba(255,210,110,0.8));
+  }
+`
+
+const winningRingIn = keyframes`
+  from { opacity: 0; transform: scale(1.7); }
+  to   { opacity: 1; transform: scale(1); }
 `
 
 const Cell = styled('div')<{ interactive?: boolean }>(({ interactive }) => ({
@@ -61,12 +84,28 @@ const Disc = styled('div')({
   '&.is-dropping': {
     animation: `${discDrop} 380ms both`,
   },
+  // --win-order staggers the pop along the line, from one end to the other.
   '&.is-winning': {
-    animation: `${winningDiscPulse} 900ms ease-in-out 2`,
+    zIndex: 1,
+    animation:
+      `${winningDiscPop} 560ms cubic-bezier(0.2, 0.9, 0.3, 1.3) calc(var(--win-order, 0) * 90ms) both, ` +
+      `${winningDiscPulse} 1800ms ease-in-out calc(var(--win-order, 0) * 90ms + 560ms) infinite`,
+  },
+  '&.is-winning::after': {
+    content: '""',
+    position: 'absolute',
+    inset: '-10%',
+    borderRadius: '50%',
+    border: '2px solid rgba(255,222,140,0.95)',
+    boxShadow:
+      '0 0 14px rgba(255,200,80,0.75), inset 0 0 10px rgba(255,200,80,0.45)',
+    pointerEvents: 'none',
+    animation: `${winningRingIn} 600ms ease-out calc(var(--win-order, 0) * 90ms) both`,
   },
   '&.is-dimmed': {
-    opacity: 0.72,
-    filter: 'brightness(0.82)',
+    opacity: 0.45,
+    filter: 'brightness(0.62) saturate(0.7)',
+    transition: 'filter 600ms ease, opacity 600ms ease',
   },
   '&::before': {
     content: '""',
@@ -113,7 +152,8 @@ type BoardGridProps = {
   previewPlayer: Player
   lastMove: Move | null
   isAnimating: boolean
-  winningCellKeys: Set<string>
+  /** Winning cell key (`row-col`) mapped to its position along the line. */
+  winningCellOrder: Map<string, number>
   showWinEmphasis: boolean
   onDropAnimationEnd: () => void
   onDrop: (col: number) => void
@@ -128,7 +168,7 @@ export const BoardGrid = memo(function BoardGrid({
   previewPlayer,
   lastMove,
   isAnimating,
-  winningCellKeys,
+  winningCellOrder,
   showWinEmphasis,
   onDropAnimationEnd,
   onDrop,
@@ -138,65 +178,67 @@ export const BoardGrid = memo(function BoardGrid({
   return (
     <>
       {board.map((row, rowIndex) =>
-        row.map((cell, colIndex) => (
-          <Cell
-            key={`${rowIndex}-${colIndex}`}
-            data-testid={`cell-${rowIndex}-${colIndex}`}
-            interactive={isDropEnabled && !isColumnFull[colIndex]}
-            onClick={() => {
-              if (!isDropEnabled || isColumnFull[colIndex]) return
-              onDrop(colIndex)
-            }}
-          >
-            {cell && (
-              <Disc
-                role="img"
-                aria-label={`${rowIndex + 1}行${colIndex + 1}列 ${cell === 'red' ? '赤' : '黄'}の玉`}
-                data-testid={`disc-${rowIndex}-${colIndex}`}
-                className={[
-                  isAnimating &&
-                  lastMove?.row === rowIndex &&
-                  lastMove.col === colIndex
-                    ? 'is-dropping'
-                    : '',
-                  showWinEmphasis &&
-                  winningCellKeys.has(`${rowIndex}-${colIndex}`)
-                    ? 'is-winning'
-                    : '',
-                  showWinEmphasis &&
-                  !winningCellKeys.has(`${rowIndex}-${colIndex}`)
-                    ? 'is-dimmed'
-                    : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-                style={
-                  {
-                    ...discAppearance[cell],
-                    '--drop-offset': getDropOffset(rowIndex),
-                  } as DiscStyle
-                }
-                onAnimationEnd={
-                  isAnimating &&
-                  lastMove?.row === rowIndex &&
-                  lastMove.col === colIndex
-                    ? onDropAnimationEnd
-                    : undefined
-                }
-              />
-            )}
-            {!cell &&
-              previewPlayer &&
-              rowIndex === previewRow &&
-              colIndex === previewColumn && (
-                <PreviewDisc
+        row.map((cell, colIndex) => {
+          const winOrder = showWinEmphasis
+            ? winningCellOrder.get(`${rowIndex}-${colIndex}`)
+            : undefined
+          return (
+            <Cell
+              key={`${rowIndex}-${colIndex}`}
+              data-testid={`cell-${rowIndex}-${colIndex}`}
+              interactive={isDropEnabled && !isColumnFull[colIndex]}
+              onClick={() => {
+                if (!isDropEnabled || isColumnFull[colIndex]) return
+                onDrop(colIndex)
+              }}
+            >
+              {cell && (
+                <Disc
                   role="img"
-                  aria-label={`${previewPlayer === 'red' ? '赤' : '黄'}の玉の落下位置`}
-                  style={discAppearance[previewPlayer]}
+                  aria-label={`${rowIndex + 1}行${colIndex + 1}列 ${cell === 'red' ? '赤' : '黄'}の玉`}
+                  data-testid={`disc-${rowIndex}-${colIndex}`}
+                  className={[
+                    isAnimating &&
+                    lastMove?.row === rowIndex &&
+                    lastMove.col === colIndex
+                      ? 'is-dropping'
+                      : '',
+                    winOrder !== undefined ? 'is-winning' : '',
+                    showWinEmphasis && winOrder === undefined
+                      ? 'is-dimmed'
+                      : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                  style={
+                    {
+                      ...discAppearance[cell],
+                      '--drop-offset': getDropOffset(rowIndex),
+                      '--win-order': winOrder,
+                    } as DiscStyle
+                  }
+                  onAnimationEnd={
+                    isAnimating &&
+                    lastMove?.row === rowIndex &&
+                    lastMove.col === colIndex
+                      ? onDropAnimationEnd
+                      : undefined
+                  }
                 />
               )}
-          </Cell>
-        ))
+              {!cell &&
+                previewPlayer &&
+                rowIndex === previewRow &&
+                colIndex === previewColumn && (
+                  <PreviewDisc
+                    role="img"
+                    aria-label={`${previewPlayer === 'red' ? '赤' : '黄'}の玉の落下位置`}
+                    style={discAppearance[previewPlayer]}
+                  />
+                )}
+            </Cell>
+          )
+        })
       )}
     </>
   )

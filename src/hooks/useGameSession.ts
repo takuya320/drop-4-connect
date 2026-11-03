@@ -183,17 +183,13 @@ export function useGameSession() {
       : gameMode === 'cpu' && statusPlayer === 'yellow'
         ? 'CPUの番'
         : undefined
-  const winningCellKeys = useMemo(() => {
-    if (!winner || !lastMove) return new Set<string>()
-    return new Set(
-      getWinningCells(
-        board,
-        lastMove.row,
-        lastMove.col,
-        winner
-      ).map(({ row, col }) => `${row}-${col}`)
-    )
-  }, [board, lastMove, winner])
+  const winningCells = useMemo(
+    () =>
+      winner && lastMove
+        ? getWinningCells(board, lastMove.row, lastMove.col, winner)
+        : [],
+    [board, lastMove, winner]
+  )
 
   return {
     board,
@@ -222,6 +218,6 @@ export function useGameSession() {
     statusPlayer,
     undoMove,
     winner,
-    winningCellKeys,
+    winningCells,
   }
 }
