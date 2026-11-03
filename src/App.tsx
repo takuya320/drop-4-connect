@@ -30,10 +30,31 @@ import {
 } from './App.styles'
 import { PlayerDot, AnimatedTurnStatus } from './components/PlayerDot'
 import { GameBoard } from './components/board/GameBoard'
+import type { Celebration } from './components/board/VictoryOverlay'
 import { useGameSession } from './hooks/useGameSession'
 
 function App() {
   const game = useGameSession()
+  const isCpuMode = game.gameMode === 'cpu'
+  const winnerName =
+    game.winner === 'red'
+      ? isCpuMode
+        ? 'あなた'
+        : '赤'
+      : isCpuMode
+        ? 'CPU'
+        : '黄'
+  const celebration: Celebration | null =
+    game.showWinEmphasis && game.winner && game.lastMove
+      ? {
+          // Losing to the CPU is not something to throw confetti at.
+          outcome:
+            isCpuMode && game.winner === 'yellow' ? 'defeat' : 'victory',
+          tone: game.winner,
+          label: `${winnerName}の勝ち`,
+          seed: game.lastMove.id,
+        }
+      : null
 
   return (
     <>
@@ -131,13 +152,7 @@ function App() {
             {game.winner && !game.isAnimating && (
               <WinBanner role="status">
                 <PlayerDot player={game.winner} size={22} />
-                <WinText>
-                  {game.gameMode === 'cpu'
-                    ? game.winner === 'red'
-                      ? 'あなたの勝利'
-                      : 'CPUの勝利'
-                    : `${game.winner === 'red' ? '赤' : '黄'}の勝利`}
-                </WinText>
+                <WinText>{`${winnerName}の勝利`}</WinText>
               </WinBanner>
             )}
 
@@ -178,6 +193,7 @@ function App() {
 
               <GameBoard
                 board={game.board}
+                celebration={celebration}
                 columns={game.columns}
                 currentPlayer={game.currentPlayer}
                 finishDropAnimation={game.finishDropAnimation}
@@ -192,7 +208,7 @@ function App() {
                 setHoveredColumn={game.setHoveredColumn}
                 showWinEmphasis={game.showWinEmphasis}
                 winner={game.winner}
-                winningCellKeys={game.winningCellKeys}
+                winningCells={game.winningCells}
               />
             </GameCard>
 

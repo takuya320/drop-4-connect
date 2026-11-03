@@ -1,9 +1,22 @@
-import { styled } from '@mui/system'
+import { keyframes, styled } from '@mui/system'
+import { useMemo } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
-import { COLS, ROWS, type Player } from '../../gameLogic'
+import { COLS, ROWS, type CellPosition, type Player } from '../../gameLogic'
 import type { Move } from '../../gameTypes'
 import { BoardGrid } from './BoardGrid'
 import { ColumnButtons } from './ColumnButtons'
+import { VictoryOverlay, type Celebration } from './VictoryOverlay'
+import { WinningLine } from './WinningLine'
+
+// Lands together with the seal in VictoryOverlay.
+const boardImpact = keyframes`
+  0%   { transform: translate3d(0, 0, 0); }
+  15%  { transform: translate3d(0, 6px, 0) scale(0.995); }
+  35%  { transform: translate3d(-4px, -3px, 0); }
+  55%  { transform: translate3d(3px, 2px, 0); }
+  75%  { transform: translate3d(-1px, 0, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+`
 
 const BoardShell = styled('div')({
   width: '100%',
@@ -31,6 +44,9 @@ const BoardShell = styled('div')({
   placeItems: 'center',
   position: 'relative',
   border: '1px solid rgba(255,255,255,0.03)',
+  '&.is-celebrating': {
+    animation: `${boardImpact} 420ms ease-out 900ms both`,
+  },
   '&::before': {
     content: '""',
     position: 'absolute',
@@ -70,6 +86,8 @@ const BoardContainer = styled('div')({
 
 type GameBoardProps = {
   board: Player[][]
+  /** Present once the winning disc has landed. */
+  celebration: Celebration | null
   columns: number[]
   currentPlayer: Exclude<Player, null>
   finishDropAnimation: () => void
@@ -84,11 +102,12 @@ type GameBoardProps = {
   setHoveredColumn: Dispatch<SetStateAction<number | null>>
   showWinEmphasis: boolean
   winner: Player
-  winningCellKeys: Set<string>
+  winningCells: CellPosition[]
 }
 
 export function GameBoard({
   board,
+  celebration,
   columns,
   currentPlayer,
   finishDropAnimation,
@@ -103,10 +122,18 @@ export function GameBoard({
   setHoveredColumn,
   showWinEmphasis,
   winner,
-  winningCellKeys,
+  winningCells,
 }: GameBoardProps) {
+  const winningCellOrder = useMemo(
+    () =>
+      new Map(
+        winningCells.map(({ row, col }, index) => [`${row}-${col}`, index])
+      ),
+    [winningCells]
+  )
+
   return (
-    <BoardShell>
+    <BoardShell className={celebration ? 'is-celebrating' : undefined}>
       <BoardContainer>
         <ColumnButtons
           columns={columns}
@@ -125,14 +152,18 @@ export function GameBoard({
           previewPlayer={isBoardLocked ? null : currentPlayer}
           lastMove={lastMove}
           isAnimating={isAnimating}
-          winningCellKeys={winningCellKeys}
+          winningCellOrder={winningCellOrder}
           showWinEmphasis={showWinEmphasis}
           onDropAnimationEnd={finishDropAnimation}
           onDrop={handleClick}
           isDropEnabled={!isBoardLocked && !winner && !isDraw}
           isColumnFull={isColumnFull}
         />
+        {showWinEmphasis && <WinningLine cells={winningCells} />}
       </BoardContainer>
+      {celebration && (
+        <VictoryOverlay key={celebration.seed} celebration={celebration} />
+      )}
     </BoardShell>
   )
 }
